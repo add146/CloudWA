@@ -66,9 +66,36 @@ CREATE TABLE tenants (
 CREATE INDEX idx_tenants_email ON tenants(email);
 ```
 
-### 2.2 users
+### 2.2 User Roles
 
-Menyimpan kredensial pengguna.
+> 📌 **Struktur Role Sederhana**: Hanya 2 level untuk kemudahan pengelolaan.
+
+| Role | Scope | Akses |
+|------|-------|-------|
+| **Super Admin** | Platform-level | Manage all tenants, pricing, global settings |
+| **Tenant Admin** | Workspace-level | Full access ke semua fitur dalam tenant |
+
+### 2.3 super_admins
+
+Menyimpan kredensial Super Admin (platform owner).
+
+```sql
+CREATE TABLE super_admins (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  name TEXT,
+  avatar_url TEXT,
+  last_login DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_super_admins_email ON super_admins(email);
+```
+
+### 2.4 users (Tenant Admins)
+
+Menyimpan kredensial Tenant Admin (workspace owner).
 
 ```sql
 CREATE TABLE users (
@@ -76,7 +103,6 @@ CREATE TABLE users (
   tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  role TEXT DEFAULT 'operator', -- admin, operator
   name TEXT,
   avatar_url TEXT,
   last_login DATETIME,
@@ -425,12 +451,21 @@ export const tenants = sqliteTable('tenants', {
   updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
 });
 
+export const superAdmins = sqliteTable('super_admins', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  name: text('name'),
+  avatarUrl: text('avatar_url'),
+  lastLogin: text('last_login'),
+  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+});
+
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  role: text('role').default('operator'),
   name: text('name'),
   avatarUrl: text('avatar_url'),
   lastLogin: text('last_login'),
