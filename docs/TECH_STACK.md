@@ -73,7 +73,16 @@ CloudWA Flow menggunakan arsitektur **Full Serverless** dengan Cloudflare sebaga
 | **Vector DB** | Cloudflare Vectorize | RAG embeddings |
 | **AI** | Workers AI | LLM + Embedding |
 
-### 2.3 WhatsApp Gateway (Self-Built)
+### 2.3 WhatsApp Gateway (Dual Options)
+
+> 💡 **Switchable per Device**: Setiap device dapat memilih gateway yang berbeda.
+
+| Gateway | Technology | Use Case |
+|---------|------------|----------|
+| **Baileys + DO** | Self-built | Personal WA, no verification needed |
+| **Cloud API** | Official Meta | Business WA, unlimited messaging |
+
+#### Option A: Baileys + Durable Objects (Self-Built)
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -81,6 +90,29 @@ CloudWA Flow menggunakan arsitektur **Full Serverless** dengan Cloudflare sebaga
 | **Runtime** | Durable Objects | Persistent WebSocket |
 | **Storage** | R2 | Session credentials |
 | **Anti-Ban** | Custom implementation | Typing simulation |
+
+#### Option B: WhatsApp Cloud API (Official Meta)
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **API** | Graph API v21.0 | Official messaging endpoint |
+| **Auth** | System User Token | Permanent access token |
+| **Webhook** | Cloudflare Workers | Receive messages |
+| **Templates** | Pre-approved | Required for initiating conversations |
+
+**Prerequisites for Cloud API:**
+1. Meta Business Account (verified)
+2. WhatsApp Business Account
+3. Phone number (dedicated for WhatsApp Business)
+4. System User with `whatsapp_business_messaging` permission
+
+**Cloud API Endpoints:**
+```
+Base URL: https://graph.facebook.com/v21.0/{phone_number_id}
+- POST /messages         → Send message
+- GET  /media/{media_id} → Download media
+- POST /media            → Upload media
+```
 
 ---
 

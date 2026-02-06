@@ -123,8 +123,17 @@ CREATE TABLE devices (
   tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   phone_number TEXT NOT NULL,
   display_name TEXT,
+  
+  -- Gateway Configuration (switchable per device)
+  gateway_type TEXT DEFAULT 'baileys', -- 'baileys' or 'cloud_api'
+  
+  -- Baileys-specific fields
   session_status TEXT DEFAULT 'disconnected', -- connected, scanning, disconnected
-  waha_session_id TEXT, -- session ID di WAHA
+  baileys_session_data TEXT, -- R2 reference for credentials
+  
+  -- Cloud API-specific fields
+  cloud_api_config TEXT DEFAULT '{}', -- JSON: {phone_number_id, waba_id, access_token, verify_token}
+  
   webhook_url TEXT,
   anti_ban_config TEXT DEFAULT '{"typing_min":1,"typing_max":3,"enabled":true}',
   ai_fallback_enabled INTEGER DEFAULT 0,
@@ -137,6 +146,18 @@ CREATE TABLE devices (
 CREATE INDEX idx_devices_tenant ON devices(tenant_id);
 CREATE INDEX idx_devices_phone ON devices(phone_number);
 CREATE INDEX idx_devices_status ON devices(session_status);
+CREATE INDEX idx_devices_gateway ON devices(gateway_type);
+```
+
+**Cloud API Config JSON:**
+```json
+{
+  "phone_number_id": "1234567890",
+  "waba_id": "9876543210",
+  "access_token": "EAAxxxx...",
+  "verify_token": "my-verify-token",
+  "webhook_secret": "webhook-signature-secret"
+}
 ```
 
 ### 2.4 flows
