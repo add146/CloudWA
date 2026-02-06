@@ -325,30 +325,49 @@ CREATE INDEX idx_docs_tenant ON knowledge_docs(tenant_id);
 CREATE INDEX idx_docs_status ON knowledge_docs(status);
 ```
 
-### 2.12 ai_providers
+### 2.12 ai_providers (Super Admin Only)
 
-Menyimpan API key untuk provider AI eksternal.
+> 🔐 **Super Admin Only**: Hanya Super Admin yang bisa menambahkan AI provider. Tenant memilih dari yang tersedia.
+
+Menyimpan API key untuk provider AI eksternal (managed by platform).
 
 ```sql
 CREATE TABLE ai_providers (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  -- No tenant_id: managed by Super Admin only
   provider TEXT NOT NULL, -- openai, gemini, anthropic, groq, together, workers_ai
   api_key TEXT NOT NULL, -- encrypted
+  display_name TEXT NOT NULL, -- "ChatGPT-4o", "Gemini Pro", etc.
   model_id TEXT, -- gpt-4o, gemini-pro, claude-3-sonnet, etc
-  is_default INTEGER DEFAULT 0,
   is_active INTEGER DEFAULT 1,
   settings TEXT DEFAULT '{}', -- JSON: temperature, max_tokens, etc
-  usage_quota INTEGER DEFAULT 0, -- monthly quota limit (0 = unlimited)
-  usage_current INTEGER DEFAULT 0, -- current month usage
-  last_used DATETIME,
+  rate_limit_per_tenant INTEGER DEFAULT 100, -- requests/minute per tenant
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_ai_providers_tenant ON ai_providers(tenant_id);
-CREATE INDEX idx_ai_providers_default ON ai_providers(tenant_id, is_default);
-CREATE UNIQUE INDEX idx_ai_providers_unique ON ai_providers(tenant_id, provider, model_id);
+CREATE INDEX idx_ai_providers_active ON ai_providers(is_active);
+```
+
+### 2.13 tenant_ai_settings
+
+Tenant memilih provider AI yang disediakan Super Admin.
+
+```sql
+CREATE TABLE tenant_ai_settings (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  ai_provider_id TEXT NOT NULL REFERENCES ai_providers(id) ON DELETE CASCADE,
+  is_default INTEGER DEFAULT 0,
+  custom_system_prompt TEXT, -- tenant's custom AI prompt
+  usage_current INTEGER DEFAULT 0, -- current month usage
+  usage_limit INTEGER DEFAULT 0, -- 0 = use subscription limit
+  last_used DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_tenant_ai_unique ON tenant_ai_settings(tenant_id, ai_provider_id);
+CREATE INDEX idx_tenant_ai_default ON tenant_ai_settings(tenant_id, is_default);
 ```
 
 **Supported Providers:**
