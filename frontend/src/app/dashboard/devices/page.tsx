@@ -89,14 +89,20 @@ export default function DevicesPage() {
                 });
                 const data = await response.json();
 
-                if (data.success && data.data.sessionStatus === 'connected') {
-                    clearInterval(interval);
-                    setShowAddModal(false);
-                    setQrCode(null);
-                    setNewDeviceName('');
-                    setIsConnecting(false);
-                    loadDevices();
-                    alert('Device Connected Successfully!');
+                if (data.success) {
+                    if (data.data.qrCode && !qrCode) {
+                        setQrCode(data.data.qrCode);
+                    }
+
+                    if (data.data.sessionStatus === 'connected') {
+                        clearInterval(interval);
+                        setShowAddModal(false);
+                        setQrCode(null);
+                        setNewDeviceName('');
+                        setIsConnecting(false);
+                        loadDevices();
+                        alert('Device Connected Successfully!');
+                    }
                 }
             } catch (err) {
                 console.error('Polling error:', err);
@@ -174,8 +180,8 @@ export default function DevicesPage() {
                                     <Smartphone className="h-6 w-6 text-green-600" />
                                 </div>
                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${device.sessionStatus === 'connected'
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-yellow-100 text-yellow-700'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-yellow-100 text-yellow-700'
                                     }`}>
                                     {device.sessionStatus || 'Unknown'}
                                 </div>
