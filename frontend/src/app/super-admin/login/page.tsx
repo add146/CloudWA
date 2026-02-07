@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, Mail, AlertCircle, RefreshCw } from 'lucide-react';
+// Icons replaced with emojis - lucide-react removed
+// import { ShieldCheck, Lock, Mail, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function SuperAdminLoginPage() {
     const router = useRouter();
@@ -49,7 +50,7 @@ export default function SuperAdminLoginPage() {
             <div className="max-w-md w-full space-y-8 p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
                 <div className="text-center">
                     <div className="mx-auto h-12 w-12 bg-red-600 rounded-full flex items-center justify-center">
-                        <ShieldCheck className="h-8 w-8 text-white" />
+                        <span className="text-2xl">🛡️</span>
                     </div>
                     <h2 className="mt-6 text-3xl font-extrabold text-white">Super Admin</h2>
                     <p className="mt-2 text-sm text-gray-400">
@@ -60,7 +61,7 @@ export default function SuperAdminLoginPage() {
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">📧</span>
                                 <input
                                     type="email"
                                     required
@@ -73,7 +74,7 @@ export default function SuperAdminLoginPage() {
                         </div>
                         <div>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔒</span>
                                 <input
                                     type="password"
                                     required
@@ -88,7 +89,7 @@ export default function SuperAdminLoginPage() {
 
                     {error && (
                         <div className="bg-red-900/50 border border-red-800 text-red-200 p-3 rounded text-sm text-center flex items-center justify-center gap-2">
-                            <AlertCircle className="h-4 w-4" />
+                            <span>⚠️</span>
                             {error}
                         </div>
                     )}
@@ -99,7 +100,7 @@ export default function SuperAdminLoginPage() {
                             disabled={loading}
                             className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                         >
-                            {loading && <RefreshCw className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />}
+                            {loading && <span className="animate-spin -ml-1 mr-2">🔄</span>}
                             {loading ? 'Authenticating...' : 'Access Dashboard'}
                         </button>
                     </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Server, Key, Info } from 'lucide-react';
+// Icons replaced with emojis - lucide-react removed
+// import { Save, Server, Key, Info } from 'lucide-react';
 
 interface Settings {
     waha?: {
@@ -86,7 +87,7 @@ export default function SettingsPage() {
     return (
         <div className="container mx-auto max-w-4xl p-6">
             <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Server className="h-6 w-6 text-blue-600" />
+                <span>🖥️</span>
                 System Settings
             </h1>
 
@@ -97,7 +98,7 @@ export default function SettingsPage() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                     <div className="flex gap-3">
-                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-blue-600 flex-shrink-0 mt-0.5">ℹ️</span>
                         <div className="text-sm text-blue-800">
                             <strong>Bring Your Own Server (BYOS):</strong><br />
                             Configure your own WAHA (WhatsApp HTTP API) server here. This allows you to process
@@ -111,7 +112,7 @@ export default function SettingsPage() {
                         {/* WAHA Base URL */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Server className="h-4 w-4" />
+                                <span>🖥️</span>
                                 WAHA Base URL
                             </label>
                             <input
@@ -130,7 +131,7 @@ export default function SettingsPage() {
                         {/* WAHA API Key */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Key className="h-4 w-4" />
+                                <span>🔑</span>
                                 WAHA API Key
                             </label>
                             <input
@@ -167,7 +168,7 @@ export default function SettingsPage() {
                                 </>
                             ) : (
                                 <>
-                                    <Save className="h-4 w-4" />
+                                    <span>💾</span>
                                     Save Configuration
                                 </>
                             )}

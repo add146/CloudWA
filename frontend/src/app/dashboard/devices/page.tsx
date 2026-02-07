@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Smartphone, Trash2, RefreshCw, QrCode as QrIcon, AlertCircle, CheckCircle } from 'lucide-react';
+// Icons replaced with emojis - lucide-react removed
+// import { Plus, Smartphone, Trash2, RefreshCw, QrCode as QrIcon, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface Device {
     id: string;
@@ -114,7 +115,6 @@ export default function DevicesPage() {
             clearInterval(interval);
             if (isConnecting) {
                 setIsConnecting(false);
-                // alert('Connection timed out. Please try again.');
             }
         }, 120000);
     };
@@ -144,14 +144,14 @@ export default function DevicesPage() {
                     onClick={() => setShowAddModal(true)}
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
-                    <Plus className="h-5 w-5" />
+                    <span>➕</span>
                     Add Device
                 </button>
             </div>
 
             {error && (
                 <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
+                    <span>⚠️</span>
                     {error}
                 </div>
             )}
@@ -160,14 +160,14 @@ export default function DevicesPage() {
                 <div className="text-center py-12 text-gray-500">Loading devices...</div>
             ) : devices.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed">
-                    <Smartphone className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                    <span className="text-6xl mb-4 block">📱</span>
                     <h3 className="text-xl font-medium text-gray-900">No Devices Connected</h3>
                     <p className="text-gray-500 mt-2 mb-6">Connect your first WhatsApp number to get started</p>
                     <button
                         onClick={() => setShowAddModal(true)}
                         className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                     >
-                        <Plus className="h-5 w-5" />
+                        <span>➕</span>
                         Connect WhatsApp
                     </button>
                 </div>
@@ -177,7 +177,7 @@ export default function DevicesPage() {
                         <div key={device.id} className="bg-white rounded-xl shadow-sm border p-6">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="bg-green-100 p-3 rounded-full">
-                                    <Smartphone className="h-6 w-6 text-green-600" />
+                                    <span className="text-2xl">📱</span>
                                 </div>
                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${device.sessionStatus === 'connected'
                                     ? 'bg-green-100 text-green-700'
@@ -203,7 +203,7 @@ export default function DevicesPage() {
                                     className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
                                     title="Disconnect"
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    🗑️
                                 </button>
                             </div>
                         </div>
@@ -223,9 +223,9 @@ export default function DevicesPage() {
                                     setQrCode(null);
                                     setIsConnecting(false);
                                 }}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-gray-400 hover:text-gray-600 text-xl"
                             >
-                                <Trash2 className="h-5 w-5 rotate-45" /> {/* Close icon workaround */}
+                                ✕
                             </button>
                         </div>
 
@@ -246,7 +246,7 @@ export default function DevicesPage() {
                                     disabled={!newDeviceName || isConnecting}
                                     className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex justify-center items-center gap-2"
                                 >
-                                    {isConnecting && <RefreshCw className="h-4 w-4 animate-spin" />}
+                                    {isConnecting && <span className="animate-spin">🔄</span>}
                                     {isConnecting ? 'Generating QR...' : 'Get QR Code'}
                                 </button>
                             </div>
@@ -263,7 +263,7 @@ export default function DevicesPage() {
                                     <p>4. Point your phone to this screen to capture the code</p>
                                 </div>
                                 <div className="mt-6 flex items-center justify-center gap-2 text-blue-600">
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    <span className="animate-spin">🔄</span>
                                     <span>Waiting for connection...</span>
                                 </div>
                             </div>

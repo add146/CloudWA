@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, User, RefreshCw, AlertCircle } from 'lucide-react';
+// Icons replaced with emojis - lucide-react removed
+// import { Plus, Search, Trash2, User, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface Contact {
     id: string;
@@ -57,9 +58,7 @@ export default function ContactsPage() {
             }
         } catch (err: any) {
             console.error('Error loading contacts:', err);
-            // Fail gracefully for now as endpoint might not return array
             setContacts([]);
-            // setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -128,7 +127,7 @@ export default function ContactsPage() {
                     onClick={() => setShowAddModal(true)}
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
-                    <Plus className="h-5 w-5" />
+                    <span>➕</span>
                     Add Contact
                 </button>
             </div>
@@ -136,7 +135,7 @@ export default function ContactsPage() {
             {/* Search Bar */}
             <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
                     <input
                         type="text"
                         placeholder="Search by name or phone..."
@@ -149,7 +148,7 @@ export default function ContactsPage() {
 
             {error && (
                 <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
+                    <span>⚠️</span>
                     {error}
                 </div>
             )}
@@ -158,14 +157,14 @@ export default function ContactsPage() {
                 <div className="text-center py-12 text-gray-500">Loading contacts...</div>
             ) : filteredContacts.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed">
-                    <User className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                    <span className="text-6xl mb-4 block">👤</span>
                     <h3 className="text-xl font-medium text-gray-900">No contacts found</h3>
                     <p className="text-gray-500 mt-2 mb-6">Add your first contact to start messaging</p>
                     <button
                         onClick={() => setShowAddModal(true)}
                         className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                     >
-                        <Plus className="h-5 w-5" />
+                        <span>➕</span>
                         Add Contact
                     </button>
                 </div>
@@ -187,7 +186,7 @@ export default function ContactsPage() {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
-                                                {contact.name?.[0] || <User className="h-4 w-4" />}
+                                                {contact.name?.[0] || '👤'}
                                             </div>
                                             <div className="text-sm font-medium text-gray-900">{contact.name || 'Unknown'}</div>
                                         </div>
@@ -212,7 +211,7 @@ export default function ContactsPage() {
                                             onClick={() => deleteContact(contact.id)}
                                             className="text-red-600 hover:text-red-900"
                                         >
-                                            <Trash2 className="h-4 w-4" />
+                                            🗑️
                                         </button>
                                     </td>
                                 </tr>
@@ -283,7 +282,7 @@ export default function ContactsPage() {
                                     disabled={isSubmitting}
                                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex justify-center items-center gap-2"
                                 >
-                                    {isSubmitting && <RefreshCw className="h-4 w-4 animate-spin" />}
+                                    {isSubmitting && <span className="animate-spin">🔄</span>}
                                     Save Contact
                                 </button>
                             </div>

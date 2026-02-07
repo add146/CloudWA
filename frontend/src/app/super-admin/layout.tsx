@@ -2,15 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-    ShieldCheck,
-    Users,
-    Settings,
-    LogOut,
-    LayoutDashboard,
-    Server,
-    Database
-} from 'lucide-react';
+// Icons replaced with emojis - lucide-react removed
+// import { ShieldCheck, Users, Settings, LogOut, LayoutDashboard, Server, Database } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function SuperAdminLayout({
@@ -48,11 +41,11 @@ export default function SuperAdminLayout({
     };
 
     const navigation = [
-        { name: 'Overview', href: '/super-admin/dashboard', icon: LayoutDashboard },
-        { name: 'Tenants', href: '/super-admin/tenants', icon: Users },
-        { name: 'AI Providers', href: '/super-admin/ai', icon: Server },
-        { name: 'Plans', href: '/super-admin/plans', icon: Database },
-        { name: 'Settings', href: '/super-admin/settings', icon: Settings },
+        { name: 'Overview', href: '/super-admin/dashboard', icon: '📊' },
+        { name: 'Tenants', href: '/super-admin/tenants', icon: '👥' },
+        { name: 'AI Providers', href: '/super-admin/ai', icon: '🖥️' },
+        { name: 'Plans', href: '/super-admin/plans', icon: '💾' },
+        { name: 'Settings', href: '/super-admin/settings', icon: '⚙️' },
     ];
 
     return (
@@ -60,7 +53,7 @@ export default function SuperAdminLayout({
             {/* Sidebar */}
             <aside className="w-64 bg-gray-900 border-r border-gray-800 text-white flex-shrink-0">
                 <div className="h-16 flex items-center px-6 border-b border-gray-800 gap-3">
-                    <ShieldCheck className="h-6 w-6 text-red-500" />
+                    <span className="text-red-500 text-xl">🛡️</span>
                     <span className="text-lg font-bold">CloudWA Admin</span>
                 </div>
 
@@ -72,11 +65,11 @@ export default function SuperAdminLayout({
                                 key={item.name}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                        ? 'bg-red-600 text-white'
-                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                    ? 'bg-red-600 text-white'
+                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                                     }`}
                             >
-                                <item.icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                                <span className={isActive ? 'text-white' : 'text-gray-400'}>{item.icon}</span>
                                 {item.name}
                             </Link>
                         );
@@ -97,7 +90,7 @@ export default function SuperAdminLayout({
                         onClick={handleLogout}
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-900/30 rounded-lg transition"
                     >
-                        <LogOut className="h-5 w-5" />
+                        <span>🚪</span>
                         Sign Out
                     </button>
                 </div>

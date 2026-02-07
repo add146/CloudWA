@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Megaphone, Calendar, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+// Icons replaced with emojis - lucide-react removed
+// import { Plus, Megaphone, Calendar, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Campaign {
     id: string;
@@ -99,7 +100,7 @@ export default function CampaignsPage() {
                     onClick={() => setShowCreateModal(true)}
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
-                    <Plus className="h-5 w-5" />
+                    <span>➕</span>
                     New Broadcast
                 </button>
             </div>
@@ -108,14 +109,14 @@ export default function CampaignsPage() {
                 <div className="text-center py-12 text-gray-500">Loading campaigns...</div>
             ) : campaigns.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed">
-                    <Megaphone className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                    <span className="text-6xl mb-4 block">📢</span>
                     <h3 className="text-xl font-medium text-gray-900">No Broadcasts Yet</h3>
                     <p className="text-gray-500 mt-2 mb-6">Create your first campaign to reach your audience</p>
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                     >
-                        <Plus className="h-5 w-5" />
+                        <span>➕</span>
                         Create Campaign
                     </button>
                 </div>
@@ -128,7 +129,7 @@ export default function CampaignsPage() {
                                     <h3 className="text-lg font-semibold text-gray-900">{campaign.name}</h3>
                                     <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                                         <span className="flex items-center gap-1">
-                                            <Clock className="h-4 w-4" />
+                                            <span>🕐</span>
                                             {campaign.scheduledAt ? new Date(campaign.scheduledAt).toLocaleDateString() : 'Immediate'}
                                         </span>
                                         <span>•</span>
@@ -163,7 +164,7 @@ export default function CampaignsPage() {
                     <div className="bg-white rounded-xl max-w-lg w-full p-6">
                         <h3 className="text-xl font-bold mb-4">New Broadcast</h3>
                         <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg mb-4 text-sm">
-                            <AlertCircle className="h-4 w-4 inline mr-2" />
+                            <span className="mr-2">⚠️</span>
                             Broadcast feature is currently in beta. Please ensure you have sufficient quota.
                         </div>
 
