@@ -2,18 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-// import {
-//     LayoutDashboard,
-//     Smartphone,
-//     GitMerge,
-//     Users,
-//     Megaphone,
-//     Bot,
-//     Settings,
-//     LogOut,
-//     Menu,
-//     X
-// } from 'lucide-react';
+import {
+    Smartphone,
+    GitMerge,
+    Users,
+    Megaphone,
+    Book,
+    Settings,
+    LogOut,
+    Menu,
+    X
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function DashboardLayout({
@@ -48,12 +47,12 @@ export default function DashboardLayout({
 
     const navigation = [
         // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // TODO: Create dashboard home
-        { name: 'Devices', href: '/dashboard/devices', emoji: '📱' },
-        { name: 'Flows', href: '/dashboard/flows', emoji: '🔀' },
-        { name: 'Contacts', href: '/dashboard/contacts', emoji: '👥' },
-        { name: 'Broadcasts', href: '/dashboard/campaigns', emoji: '📢' },
-        { name: 'Knowledge Base', href: '/dashboard/kb', emoji: '📚' },
-        { name: 'Settings', href: '/dashboard/settings', emoji: '⚙️' },
+        { name: 'Devices', href: '/dashboard/devices', icon: Smartphone },
+        { name: 'Flows', href: '/dashboard/flows', icon: GitMerge },
+        { name: 'Contacts', href: '/dashboard/contacts', icon: Users },
+        { name: 'Broadcasts', href: '/dashboard/campaigns', icon: Megaphone },
+        { name: 'Knowledge Base', href: '/dashboard/kb', icon: Book },
+        { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ];
 
     return (
@@ -84,11 +83,10 @@ export default function DashboardLayout({
                                 href={item.href}
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                                     ? 'bg-blue-50 text-blue-700'
-                                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                     }`}
                             >
-                                {/* <item.icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} /> */}
-                                <span className="text-lg">{item.emoji}</span>
+                                <item.icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
                                 {item.name}
                             </Link>
                         );
@@ -109,8 +107,7 @@ export default function DashboardLayout({
                         onClick={handleLogout}
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition"
                     >
-                        {/* <LogOut className="h-5 w-5" /> */}
-                        <span className="text-lg">🚪</span>
+                        <LogOut className="h-5 w-5" />
                         Sign Out
                     </button>
                 </div>
@@ -125,7 +122,7 @@ export default function DashboardLayout({
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                     >
-                        {isSidebarOpen ? <span>[x]</span> : <span>[=]</span>}
+                        {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                     </button>
                 </header>
 

@@ -94,7 +94,7 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 - [x] React Flow canvas
 - [x] Node palette
 - [x] Connection handling
-- [x] Save/load flows
+- [x] Save/load flows (Fixed & Stable)
 - [ ] Flow versioning
 
 ---
@@ -116,7 +116,7 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 - [/] Verify Core Features
   - [ ] Device Connection (QR Code) - Waiting for User Integration
   - [ ] Broadcast Campaign Sending
-  - [ ] Flow Editor & Executionans
+  - [x] Flow Editor & Execution (Fixed)
 - [ ] Tenant management
 - [ ] AI provider management
 - [ ] Subscription plans
@@ -125,9 +125,9 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 ### 4.2 Tenant Admin Dashboard
 - [x] Login page
 - [x] Register page
-- [x] Dashboard Layout (Sidebar)
+- [x] Dashboard Layout (Sidebar & Icons Fixed)
 - [x] Device management (QR Code Scan & Connected)
-- [x] Flow builder usage
+- [x] Flow builder usage (Save, Load, Edit Name)
 - [x] Broadcast campaigns (UI Implementation & Backend)
 - [x] Contact management (CRUD Implementation & Backend)
 - [ ] Knowledge base
@@ -192,9 +192,10 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 
 | Task | Status | Assignee |
 |------|--------|----------|
-| Backend auth system | 🔄 In Progress | - |
-| Baileys DO integration | ⏳ Pending | - |
-| Super Admin UI | ⏳ Pending | - |
+| Flow Editor Refinement | ✅ Completed | - |
+| Sidebar Navigation Icons | ✅ Completed | - |
+| Backend Direct Flow Access | ✅ Completed | - |
+| Device Connection (QR) | ⏳ Pending | - |
 
 ---
 

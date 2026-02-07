@@ -7,7 +7,17 @@
 
 ---
 
-## Phase 3: Frontend Dashboard - ⏳ IN PROGRESS
+## Phase 3: Frontend Dashboard - 🔄 REFINEMENT
+
+### 11.2 Flow Editor Refinement ✅
+- **Fixed Flow Saving**: Implemented direct API routes in backend (`GET/PUT /flows/:id`) and updated frontend to use correct Worker URL.
+- **State Persistence**: Fixed `useFlowStore` reset issues so flow state clears correctly on mount/unmount.
+- **UI Enhancements**:
+  - Added "Hide Library" toggle for full-screen canvas.
+  - Added editable Flow Name in header.
+  - Fixed Sidebar navigation icons with proper emojis.
+
+### 11.1 Project Initialization ✅
 
 ### 11.1 Project Initialization ✅
 - Next.js 14 initialized in `frontend/`
