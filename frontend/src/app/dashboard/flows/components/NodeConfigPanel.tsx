@@ -9,9 +9,17 @@ export function NodeConfigPanel() {
 
     if (!selectedNode) {
         return (
-            <div className="w-80 bg-gray-50 border-l border-gray-200 p-6">
-                <div className="text-center text-gray-500 mt-12">
-                    <p className="text-sm">Select a node to configure</p>
+            <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
+                <div className="p-6 border-b border-gray-200">
+                    <h3 className="text-lg font-bold text-gray-900">Node Settings</h3>
+                    <p className="text-xs text-gray-500 mt-1">Configure selected node</p>
+                </div>
+                <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="text-center">
+                        <div className="text-6xl mb-4 opacity-20">⚙️</div>
+                        <p className="text-sm text-gray-500 font-medium">No node selected</p>
+                        <p className="text-xs text-gray-400 mt-2">Click on a node to configure it</p>
+                    </div>
                 </div>
             </div>
         );
@@ -24,40 +32,50 @@ export function NodeConfigPanel() {
     };
 
     return (
-        <div className="w-80 bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-700">Node Settings</h3>
-                <button
-                    onClick={handleDelete}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete node"
-                >
-                    <span className="text-red-600">🗑️</span>
-                </button>
+        <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-bold text-gray-900">Node Settings</h3>
+                    <button
+                        onClick={handleDelete}
+                        className="group p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 hover:shadow-md"
+                        title="Delete node"
+                    >
+                        <span className="group-hover:scale-110 inline-block transition-transform">🗑️</span>
+                    </button>
+                </div>
+                <p className="text-xs text-gray-600 font-medium">
+                    {selectedNode.type?.charAt(0).toUpperCase() + selectedNode.type?.slice(1)} Node
+                </p>
             </div>
 
-            {/* Dynamic config based on node type */}
-            {selectedNode.type === 'message' && (
-                <MessageConfig node={selectedNode} onUpdate={updateNodeData} />
-            )}
-            {selectedNode.type === 'button' && (
-                <ButtonConfig node={selectedNode} onUpdate={updateNodeData} />
-            )}
-            {selectedNode.type === 'condition' && (
-                <ConditionConfig node={selectedNode} onUpdate={updateNodeData} />
-            )}
-            {selectedNode.type === 'ai' && (
-                <AIConfig node={selectedNode} onUpdate={updateNodeData} />
-            )}
-            {selectedNode.type === 'delay' && (
-                <DelayConfig node={selectedNode} onUpdate={updateNodeData} />
-            )}
-            {selectedNode.type === 'human_takeover' && (
-                <HumanTakeoverConfig node={selectedNode} onUpdate={updateNodeData} />
-            )}
-            {selectedNode.type === 'start' && (
-                <div className="text-sm text-gray-500">Start node has no configuration</div>
-            )}
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+
+                {/* Dynamic config based on node type */}
+                {selectedNode.type === 'message' && (
+                    <MessageConfig node={selectedNode} onUpdate={updateNodeData} />
+                )}
+                {selectedNode.type === 'button' && (
+                    <ButtonConfig node={selectedNode} onUpdate={updateNodeData} />
+                )}
+                {selectedNode.type === 'condition' && (
+                    <ConditionConfig node={selectedNode} onUpdate={updateNodeData} />
+                )}
+                {selectedNode.type === 'ai' && (
+                    <AIConfig node={selectedNode} onUpdate={updateNodeData} />
+                )}
+                {selectedNode.type === 'delay' && (
+                    <DelayConfig node={selectedNode} onUpdate={updateNodeData} />
+                )}
+                {selectedNode.type === 'human_takeover' && (
+                    <HumanTakeoverConfig node={selectedNode} onUpdate={updateNodeData} />
+                )}
+                {selectedNode.type === 'start' && (
+                    <div className="text-sm text-gray-500">Start node has no configuration</div>
+                )}
+            </div>
         </div>
     );
 }

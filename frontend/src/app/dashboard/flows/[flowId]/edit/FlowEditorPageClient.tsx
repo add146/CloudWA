@@ -77,39 +77,52 @@ export function FlowEditorPageClient() {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
-            {/* Header Toolbar */}
-            <header className="h-16 border-b bg-white px-4 flex items-center justify-between shadow-sm z-10">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-slate-100">
+            {/* Enhanced Header Toolbar */}
+            <header className="h-16 border-b bg-white/80 backdrop-blur-sm px-6 flex items-center justify-between shadow-lg z-20">
                 <div className="flex items-center gap-4">
                     <button
-                        className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                        className="group p-2 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg transition-all duration-200 hover:shadow-md"
                         onClick={handleBack}
+                        title="Back to flows"
                     >
-                        <span className="text-lg">←</span>
+                        <span className="text-xl group-hover:scale-110 inline-block transition-transform">←</span>
                     </button>
                     <div>
-                        <h1 className="font-semibold text-lg">Flow Editor</h1>
-                        <p className="text-xs text-gray-500">Flow ID: {flowId}</p>
+                        <h1 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            Flow Editor
+                        </h1>
+                        <p className="text-xs text-gray-500 font-medium">ID: {flowId}</p>
                     </div>
                     {isDirty && (
-                        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        <span className="flex items-center gap-1.5 text-xs text-amber-700 bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1.5 rounded-full border border-amber-300 shadow-sm">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
                             Unsaved changes
                         </span>
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className={`flex items-center px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${isSaving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                            }`}
+                        className={`
+                            flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold 
+                            transition-all duration-200 shadow-md hover:shadow-lg
+                            ${isSaving
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105"
+                            }
+                        `}
                     >
                         {isSaving ? (
-                            "Saving..."
+                            <>
+                                <span className="animate-spin">⏳</span>
+                                Saving...
+                            </>
                         ) : (
                             <>
-                                <span className="mr-2">💾</span>
+                                <span className="text-base">💾</span>
                                 Save Flow
                             </>
                         )}
@@ -121,19 +134,15 @@ export function FlowEditorPageClient() {
             <div className="flex-1 flex overflow-hidden">
                 <ReactFlowProvider>
                     {/* Left Sidebar: Node Palette */}
-                    <div className="w-64 border-r bg-white flex flex-col">
-                        <NodePalette />
-                    </div>
+                    <NodePalette />
 
                     {/* Center: Canvas */}
-                    <div className="flex-1 bg-gray-100 relative">
+                    <div className="flex-1 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-gray-100 to-slate-200">
                         <FlowCanvas />
                     </div>
 
                     {/* Right Sidebar: Configuration Panel */}
-                    <div className="w-80 border-l bg-white flex flex-col">
-                        <NodeConfigPanel />
-                    </div>
+                    <NodeConfigPanel />
                 </ReactFlowProvider>
             </div>
         </div>
