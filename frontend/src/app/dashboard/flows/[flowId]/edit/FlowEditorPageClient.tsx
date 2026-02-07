@@ -36,7 +36,11 @@ export function FlowEditorPageClient() {
             setIsLoading(true);
 
             // Fetch flow data
-            fetch(`${API_URL}/api/flows/${flowId}`)
+            fetch(`${API_URL}/api/flows/${flowId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            })
                 .then(res => {
                     if (!res.ok) throw new Error('Failed to fetch flow');
                     return res.json();
