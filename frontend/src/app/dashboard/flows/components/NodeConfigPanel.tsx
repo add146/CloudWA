@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFlowStore } from '../store';
 // import { Trash } from 'lucide-react';
 import { VariablePicker } from './VariablePicker'; // Assuming VariablePicker is in a local file
@@ -238,7 +239,12 @@ function AIConfig({ node, onUpdate }: any) {
 }
 
 function DelayConfig({ node, onUpdate }: any) {
-    const isRandom = node.data.random || false;
+    const [isRandom, setIsRandom] = useState(node.data.random || false);
+
+    const handleRandomToggle = (checked: boolean) => {
+        setIsRandom(checked);
+        onUpdate(node.id, { random: checked });
+    };
 
     return (
         <div className="space-y-3">
@@ -247,7 +253,7 @@ function DelayConfig({ node, onUpdate }: any) {
                     <input
                         type="checkbox"
                         checked={isRandom}
-                        onChange={(e) => onUpdate(node.id, { random: e.target.checked })}
+                        onChange={(e) => handleRandomToggle(e.target.checked)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     Random Delay
