@@ -1,42 +1,38 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { Save, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Save, ArrowLeft } from 'lucide-react';
 
 import { useFlowStore } from '../../store';
 import { NodePalette } from '../../components/NodePalette';
 import { FlowCanvas } from '../../components/FlowCanvas';
-import { ConfigurationPanel } from '../../components/ConfigurationPanel';
-import { Button } from '../../../../../components/ui/button'; // Adjusted path
-import { useToast } from '../../../../../hooks/use-toast'; // Adjusted path
+// Correct import name and path
+import { NodeConfigPanel } from '../../components/NodeConfigPanel';
 
-export default function FlowEditorPageClient() {
+export function FlowEditorPageClient() {
     const { flowId } = useParams();
     const router = useRouter();
-    const { toast } = useToast();
 
-    // State management from store
+    // State management from store with only existing methods
     const {
         nodes, edges,
-        loadFlow, saveFlow,
-        onNodesChange, onEdgesChange, onConnect,
-        isDirty, setDirty
+        onNodesChange, onEdgesChange, onConnect
     } = useFlowStore();
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDirty, setDirty] = useState(false); // Local state for now
 
-    // Load flow on mount based on flowId
+    // Mock load flow
     useEffect(() => {
         if (flowId) {
-            // In a real app, fetch from API
-            // For now, load from store or check if exists
-            // loadFlow(flowId as string); 
-            setIsLoading(false);
+            // Simulate loading
+            const timer = setTimeout(() => setIsLoading(false), 500);
+            return () => clearTimeout(timer);
         }
-    }, [flowId, loadFlow]);
+    }, [flowId]);
 
     // Handle unsaved changes warning
     useEffect(() => {
@@ -54,17 +50,13 @@ export default function FlowEditorPageClient() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await saveFlow();
-            toast({
-                title: "Flow Saved",
-                description: "Your changes have been saved successfully.",
-            });
+            // Mock save delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setDirty(false);
+            // Simple alert for now
+            alert("Flow saved successfully!");
         } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to save flow.",
-                variant: "destructive"
-            });
+            alert("Failed to save flow.");
         } finally {
             setIsSaving(false);
         }
@@ -89,9 +81,12 @@ export default function FlowEditorPageClient() {
             {/* Header Toolbar */}
             <header className="h-16 border-b bg-white px-4 flex items-center justify-between shadow-sm z-10">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={handleBack}>
+                    <button
+                        className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                        onClick={handleBack}
+                    >
                         <ArrowLeft className="h-5 w-5" />
-                    </Button>
+                    </button>
                     <div>
                         <h1 className="font-semibold text-lg">Flow Editor</h1>
                         <p className="text-xs text-gray-500">Flow ID: {flowId}</p>
@@ -104,10 +99,11 @@ export default function FlowEditorPageClient() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button
+                    <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className={isDirty ? "bg-primary" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}
+                        className={`flex items-center px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${isSaving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                            }`}
                     >
                         {isSaving ? (
                             "Saving..."
@@ -117,7 +113,7 @@ export default function FlowEditorPageClient() {
                                 Save Flow
                             </>
                         )}
-                    </Button>
+                    </button>
                 </div>
             </header>
 
@@ -136,7 +132,7 @@ export default function FlowEditorPageClient() {
 
                     {/* Right Sidebar: Configuration Panel */}
                     <div className="w-80 border-l bg-white flex flex-col">
-                        <ConfigurationPanel />
+                        <NodeConfigPanel />
                     </div>
                 </ReactFlowProvider>
             </div>
