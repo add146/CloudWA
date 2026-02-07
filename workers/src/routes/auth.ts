@@ -13,6 +13,78 @@ const auth = new Hono<HonoContext>();
 // SUPER ADMIN LOGIN
 // ============================================
 
+// ============================================
+// SUPER ADMIN REGISTRATION (TEMPORARY/INITIAL)
+// ============================================
+
+auth.post('/super-admin/register', async (c) => {
+    try {
+        const { email, password, name } = await c.req.json();
+
+        if (!email || !password || !name) {
+            return c.json({
+                success: false,
+                error: 'All fields required'
+            }, 400);
+        }
+
+        const db = drizzle(c.env.DB);
+
+        // Check if email already exists
+        const [existing] = await db
+            .select()
+            .from(superAdmins)
+            .where(eq(superAdmins.email, email))
+            .limit(1);
+
+        if (existing) {
+            return c.json({
+                success: false,
+                error: 'Email already registered'
+            }, 400);
+        }
+
+        // Hash password
+        const passwordHash = await hashPassword(password);
+
+        // Create super admin
+        const [admin] = await db
+            .insert(superAdmins)
+            .values({
+                email,
+                passwordHash,
+                name,
+            })
+            .returning();
+
+        // Create JWT
+        const token = await createToken({
+            userId: admin.id,
+            tenantId: '',
+            role: 'super_admin',
+            email: admin.email,
+        }, c.env.JWT_SECRET);
+
+        return c.json({
+            success: true,
+            data: {
+                token,
+                user: {
+                    id: admin.id,
+                    email: admin.email,
+                    name: admin.name,
+                    role: 'super_admin',
+                },
+            },
+        });
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Registration failed'
+        }, 500);
+    }
+});
+
 auth.post('/super-admin/login', async (c) => {
     try {
         const { email, password } = await c.req.json();
