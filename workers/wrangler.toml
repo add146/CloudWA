@@ -13,17 +13,15 @@ database_name = "cloudwa-flow-db"
 database_id = "75b8fc35-c6cb-4994-9938-e1e159c18356"
 migrations_dir = "src/db/migrations"
 
-# Object Storage R2 (for session credentials)
+# Object Storage R2
 [[r2_buckets]]
 binding = "SESSION_BUCKET"
 bucket_name = "cloudwa-sessions"
 
-# Object Storage R2 (for media files)
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "cloudwa-media"
 
-# Object Storage R2 (for knowledge base documents)
 [[r2_buckets]]
 binding = "DOCS_BUCKET"
 bucket_name = "cloudwa-docs"

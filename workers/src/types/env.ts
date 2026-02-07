@@ -8,12 +8,12 @@ export interface Env {
     // Storage
     SESSION_BUCKET: R2Bucket;
     MEDIA_BUCKET: R2Bucket;
-    DOCS_BUCKET: R2Bucket;
+    DOCS_BUCKET: R2Bucket; // Optional - for knowledge base documents
 
     // Queues (optional - can be added later)
     // BLAST_QUEUE: Queue;
 
-    // AI
+    // AI (optional - for RAG feature)
     VECTOR_INDEX: Vectorize;
     AI: Ai;
 

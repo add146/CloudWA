@@ -4,6 +4,7 @@ import type { HonoContext, Env } from '@/types/env';
 import auth from '@/routes/auth';
 import devices from '@/routes/devices';
 import flows from '@/routes/flows';
+import ai from '@/routes/ai';
 
 // Durable Objects removed - using WAHA HTTP API instead
 
@@ -39,6 +40,7 @@ app.get('/health', (c) => {
 app.route('/api/auth', auth);
 app.route('/api/devices', devices);
 app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
+app.route('/api', ai); // AI routes under /api/knowledge-base
 
 // Webhook endpoint for WAHA messages
 app.post('/api/webhook/waha', async (c) => {
