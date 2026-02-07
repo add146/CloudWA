@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Play, Trash, Edit, AlertCircle } from 'lucide-react';
+// import { Plus, Play, Trash, Edit, AlertCircle } from 'lucide-react';
 
 interface Flow {
     id: string;
@@ -235,7 +235,7 @@ export default function FlowsPage() {
                             : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                     >
-                        <Plus className="h-5 w-5" />
+                        <span>[+]</span>
                         Create Flow
                     </button>
                 </div>
@@ -243,7 +243,7 @@ export default function FlowsPage() {
 
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
+                    <span>[!]</span>
                     {error}
                     {error.includes('login') && (
                         <button
@@ -259,7 +259,7 @@ export default function FlowsPage() {
             {!loading && (!flows || flows.length === 0) ? (
                 <div className="text-center py-16 bg-gray-50 rounded-lg border-2 border-dashed">
                     <div className="text-gray-400 mb-4">
-                        <Play className="h-16 w-16 mx-auto" />
+                        <span className="text-4xl">[PLAY]</span>
                     </div>
                     <h3 className="text-xl font-semibold text-gray-700 mb-2">
                         No flows yet
@@ -272,7 +272,7 @@ export default function FlowsPage() {
                         disabled={!selectedDeviceId}
                         className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                     >
-                        <Plus className="h-5 w-5" />
+                        <span>[+]</span>
                         Create First Flow
                     </button>
                 </div>
@@ -326,7 +326,7 @@ export default function FlowsPage() {
                                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                                         title="Edit flow"
                                     >
-                                        <Edit className="h-5 w-5" />
+                                        <span>[Edit]</span>
                                     </button>
                                     <button
                                         onClick={() => toggleActive(flow.id, flow.isActive)}
@@ -343,7 +343,7 @@ export default function FlowsPage() {
                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                         title="Delete flow"
                                     >
-                                        <Trash className="h-5 w-5" />
+                                        <span>[Delete]</span>
                                     </button>
                                 </div>
                             </div>
