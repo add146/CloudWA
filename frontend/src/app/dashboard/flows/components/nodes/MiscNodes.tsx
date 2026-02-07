@@ -2,6 +2,11 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Clock, User, List } from 'lucide-react';
 
 export function DelayNode({ data, selected }: NodeProps) {
+    const isRandom = data.random || false;
+    const delayText = isRandom
+        ? `${data.minDelay || 0}-${data.maxDelay || 0}s`
+        : `${data.delay || 0}s`;
+
     return (
         <div
             className={`
@@ -21,7 +26,7 @@ export function DelayNode({ data, selected }: NodeProps) {
                 <div>
                     <span className="block font-semibold text-xs text-gray-700">Delay</span>
                     <span className="text-[10px] text-gray-500">
-                        {data.delaySeconds ? `${data.delaySeconds}s` : 'Not set'}
+                        {delayText} {isRandom && '(Random)'}
                     </span>
                 </div>
             </div>

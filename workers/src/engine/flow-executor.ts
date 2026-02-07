@@ -294,11 +294,22 @@ export class FlowExecutor {
      * Delay node - schedules next execution
      */
     private async executeDelay(node: FlowNode): Promise<FlowExecutionResult> {
-        const delaySeconds = parseInt(node.data.delay || '0');
+        let delaySeconds = 0;
+
+        if (node.data.random) {
+            const min = parseInt(node.data.minDelay || '0');
+            const max = parseInt(node.data.maxDelay || '0');
+            // Random integer between min and max (inclusive)
+            delaySeconds = Math.floor(Math.random() * (max - min + 1)) + min;
+        } else {
+            delaySeconds = parseInt(node.data.delay || '0');
+        }
+
         const nextNode = this.getNextNode(node.id);
 
-        // TODO: Implement delayed execution using Queues or Durable Objects Alarms
-        console.log(`Delay node: ${delaySeconds}s`);
+        // TODO: Implement actual delayed execution using Queues or Durable Objects Alarms
+        // For now logging it to verify logic is triggered
+        console.log(`Delay node: ${delaySeconds}s (Random: ${!!node.data.random})`);
 
         return {
             messages: [],

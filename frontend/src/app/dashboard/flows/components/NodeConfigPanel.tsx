@@ -238,20 +238,63 @@ function AIConfig({ node, onUpdate }: any) {
 }
 
 function DelayConfig({ node, onUpdate }: any) {
+    const isRandom = node.data.random || false;
+
     return (
         <div className="space-y-3">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Delay (seconds)
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                    <input
+                        type="checkbox"
+                        checked={isRandom}
+                        onChange={(e) => onUpdate(node.id, { random: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Random Delay
                 </label>
-                <input
-                    type="number"
-                    value={node.data.delay || 0}
-                    onChange={(e) => onUpdate(node.id, { delay: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    min="0"
-                />
             </div>
+
+            {isRandom ? (
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Min (seconds)
+                        </label>
+                        <input
+                            type="number"
+                            value={node.data.minDelay || 0}
+                            onChange={(e) => onUpdate(node.id, { minDelay: parseInt(e.target.value) || 0 })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            min="0"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Max (seconds)
+                        </label>
+                        <input
+                            type="number"
+                            value={node.data.maxDelay || 0}
+                            onChange={(e) => onUpdate(node.id, { maxDelay: parseInt(e.target.value) || 0 })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            min="0"
+                        />
+                    </div>
+                </div>
+            ) : (
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Delay (seconds)
+                    </label>
+                    <input
+                        type="number"
+                        value={node.data.delay || 0}
+                        onChange={(e) => onUpdate(node.id, { delay: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        min="0"
+                    />
+                </div>
+            )}
         </div>
     );
 }
