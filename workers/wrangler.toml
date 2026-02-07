@@ -1,0 +1,59 @@
+name = "cloudwa-flow"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects for WhatsApp Sessions
+[durable_objects]
+bindings = [
+  { name = "WHATSAPP_SESSION", class_name = "WhatsAppSession" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["WhatsAppSession"]
+
+# Database D1
+[[d1_databases]]
+binding = "DB"
+database_name = "cloudwa-flow-db"
+database_id = "" # Will be set after creating D1 database
+
+# Object Storage R2 (for session credentials)
+[[r2_buckets]]
+binding = "SESSION_BUCKET"
+bucket_name = "cloudwa-sessions"
+
+# Object Storage R2 (for media files)
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "cloudwa-media"
+
+# Object Storage R2 (for knowledge base documents)
+[[r2_buckets]]
+binding = "DOCS_BUCKET"
+bucket_name = "cloudwa-docs"
+
+# Message Queue for Broadcast
+[[queues.producers]]
+binding = "BLAST_QUEUE"
+queue = "broadcast-queue"
+
+[[queues.consumers]]
+queue = "broadcast-queue"
+max_batch_size = 10
+max_batch_timeout = 5
+max_concurrency = 5
+
+# Vector Database for RAG
+[[vectorize]]
+binding = "VECTOR_INDEX"
+index_name = "cloudwa-rag-index"
+
+# Workers AI
+[ai]
+binding = "AI"
+
+# Environment Variables (set via wrangler secret)
+# JWT_SECRET - Secret for JWT signing
+# Run: wrangler secret put JWT_SECRET
