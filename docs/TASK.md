@@ -105,6 +105,18 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 - [x] Login page
 - [x] Register page (Temporary for setup)
 - [x] Dashboard Layout
+- [x] Fix Backend Deployment
+  - [x] Resolve `drizzle-orm/d1` resolution error in Cloudflare Workers
+  - [x] Run `npm install` and ensure dependencies are correct
+  - [x] Deploy fixed backend (`npm run deploy`)
+  - [x] Fix QR Code Scan Error (Missing `waha_session_data` column)
+    - [x] Generate DB migration
+    - [x] Apply migration to D1 (`npm run db:migrate:prod`)
+    - [x] Verify Schema Update
+- [/] Verify Core Features
+  - [ ] Device Connection (QR Code) - Waiting for User Integration
+  - [ ] Broadcast Campaign Sending
+  - [ ] Flow Editor & Executionans
 - [ ] Tenant management
 - [ ] AI provider management
 - [ ] Subscription plans

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
 import type { HonoContext } from '@/types/env';
-import { devices } from '@/db/schema';
+import { devices, tenants } from '@/db/schema';
 import { authMiddleware, requireTenantAdmin } from '@/middleware/auth';
 import { WAHAClient } from '@/gateway/waha-client';
 import { CloudAPIClient } from '@/gateway/cloud-api-client';
@@ -69,46 +69,67 @@ devicesRouter.post('/', async (c) => {
             .returning();
 
         // If WAHA gateway, start session and get QR
-        if (gatewayType === 'waha' && c.env.WAHA_BASE_URL && c.env.WAHA_API_KEY) {
-            const waha = new WAHAClient({
-                baseUrl: c.env.WAHA_BASE_URL,
-                apiKey: c.env.WAHA_API_KEY,
-            });
+        if (gatewayType === 'waha') {
+            // Get tenant settings for custom WAHA config
+            const [tenant] = await db
+                .select()
+                .from(tenants)
+                .where(eq(tenants.id, user.tenantId))
+                .limit(1);
 
-            // Start session with webhook pointing back to our Workers
-            const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha`;
-            await waha.startSession(device.id, webhookUrl);
+            const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+            const wahaConfig = settings.waha || {};
 
-            // Get QR code
-            try {
-                const qr = await waha.getQRCode(device.id);
+            // Prioritize tenant config, fallback to global env
+            const wahaBaseUrl = wahaConfig.baseUrl || c.env.WAHA_BASE_URL;
+            const wahaApiKey = wahaConfig.apiKey || c.env.WAHA_API_KEY;
 
-                // Update status
-                await db
-                    .update(devices)
-                    .set({ sessionStatus: 'scanning' })
-                    .where(eq(devices.id, device.id));
-
-                return c.json({
-                    success: true,
-                    data: {
-                        id: device.id,
-                        displayName: device.displayName,
-                        sessionStatus: 'scanning',
-                        qrCode: `data:${qr.mimetype};base64,${qr.data}`,
-                    },
+            if (wahaBaseUrl && wahaApiKey) {
+                const waha = new WAHAClient({
+                    baseUrl: wahaBaseUrl,
+                    apiKey: wahaApiKey,
                 });
-            } catch (error) {
-                // QR not ready yet, return pending status
+
+                // Start session with webhook pointing back to our Workers
+                const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha`;
+                await waha.startSession(device.id, webhookUrl);
+
+                // Get QR code
+                try {
+                    const qr = await waha.getQRCode(device.id);
+
+                    // Update status
+                    await db
+                        .update(devices)
+                        .set({ sessionStatus: 'scanning' })
+                        .where(eq(devices.id, device.id));
+
+                    return c.json({
+                        success: true,
+                        data: {
+                            id: device.id,
+                            displayName: device.displayName,
+                            sessionStatus: 'scanning',
+                            qrCode: `data:${qr.mimetype};base64,${qr.data}`,
+                        },
+                    });
+                } catch (error) {
+                    // QR not ready yet, return pending status
+                    return c.json({
+                        success: true,
+                        data: {
+                            id: device.id,
+                            displayName: device.displayName,
+                            sessionStatus: 'starting',
+                            message: 'Session starting, QR code will be available soon',
+                        },
+                    });
+                }
+            } else {
                 return c.json({
-                    success: true,
-                    data: {
-                        id: device.id,
-                        displayName: device.displayName,
-                        sessionStatus: 'starting',
-                        message: 'Session starting, QR code will be available soon',
-                    },
-                });
+                    success: false,
+                    error: 'WAHA configuration missing. Please configure WAHA Server in Settings.'
+                }, 400);
             }
         }
 

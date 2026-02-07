@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import type { HonoContext, Env } from '@/types/env';
 import auth from '@/routes/auth';
 import devices from '@/routes/devices';
+import settings from '@/routes/settings';
 import flows from '@/routes/flows';
 import ai from '@/routes/ai';
 
@@ -39,6 +40,7 @@ app.get('/health', (c) => {
 
 app.route('/api/auth', auth);
 app.route('/api/devices', devices);
+app.route('/api/settings', settings); // Tenant settings
 app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
 app.route('/api', ai); // AI routes under /api/knowledge-base
 
