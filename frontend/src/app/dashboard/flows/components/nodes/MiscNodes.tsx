@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Clock, List } from 'lucide-react';
+// import { Clock, List } from 'lucide-react';
 
 export function DelayNode({ data, selected }: NodeProps) {
     const delay = data.delay || 0;
@@ -18,7 +18,7 @@ export function DelayNode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-orange-500" />
+                <span className="text-orange-500">⏱️</span>
                 <span className="font-semibold text-sm text-gray-700">Delay</span>
             </div>
 
@@ -55,7 +55,7 @@ export function ListNode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <List className="h-4 w-4 text-teal-500" />
+                <span className="text-teal-500">📋</span>
                 <span className="font-semibold text-sm text-gray-700">List</span>
             </div>
 

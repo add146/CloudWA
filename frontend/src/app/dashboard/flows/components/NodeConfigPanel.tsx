@@ -1,7 +1,7 @@
 'use client';
 
 import { useFlowStore } from '../store';
-import { Trash } from 'lucide-react';
+// import { Trash } from 'lucide-react';
 import { VariablePicker } from './VariablePicker'; // Assuming VariablePicker is in a local file
 
 export function NodeConfigPanel() {
@@ -32,7 +32,7 @@ export function NodeConfigPanel() {
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                     title="Delete node"
                 >
-                    <Trash className="h-4 w-4" />
+                    <span className="text-red-600">🗑️</span>
                 </button>
             </div>
 
@@ -135,7 +135,7 @@ function ButtonConfig({ node, onUpdate }: any) {
                                 onClick={() => removeButton(idx)}
                                 className="p-1 text-red-600 hover:bg-red-50 rounded"
                             >
-                                <Trash className="h-4 w-4" />
+                                <span className="text-red-600">🗑️</span>
                             </button>
                         </div>
                     ))}

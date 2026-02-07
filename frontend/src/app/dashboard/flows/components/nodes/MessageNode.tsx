@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { MessageSquare } from 'lucide-react';
+// import { MessageSquare } from 'lucide-react';
 
 export function MessageNode({ data, selected }: NodeProps) {
     return (
@@ -16,7 +16,7 @@ export function MessageNode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <MessageSquare className="h-4 w-4 text-blue-500" />
+                <span className="text-blue-500">💬</span>
                 <span className="font-semibold text-sm text-gray-700">Message</span>
             </div>
 

@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { UserCircle } from 'lucide-react';
+// import { UserCircle } from 'lucide-react';
 
 export function HumanTakeoverNode({ data, selected }: NodeProps) {
     return (
@@ -16,7 +16,7 @@ export function HumanTakeoverNode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <UserCircle className="h-4 w-4 text-red-600" />
+                <span className="text-red-600">👤</span>
                 <span className="font-semibold text-sm text-red-700">Human Takeover</span>
             </div>
 

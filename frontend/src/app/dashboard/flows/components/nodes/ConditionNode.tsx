@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { GitBranch } from 'lucide-react';
+// import { GitBranch } from 'lucide-react';
 
 export function ConditionNode({ data, selected }: NodeProps) {
     return (
@@ -16,7 +16,7 @@ export function ConditionNode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <GitBranch className="h-4 w-4 text-yellow-500" />
+                <span className="text-yellow-500">🔀</span>
                 <span className="font-semibold text-sm text-gray-700">Condition</span>
             </div>
 

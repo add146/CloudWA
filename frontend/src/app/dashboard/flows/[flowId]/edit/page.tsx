@@ -1,4 +1,4 @@
-import FlowEditorPageClient from './FlowEditorPageClient';
+import { FlowEditorPageClient } from './FlowEditorPageClient';
 
 export const runtime = 'edge';
 

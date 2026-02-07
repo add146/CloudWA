@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { Save, ArrowLeft } from 'lucide-react';
+// import { Save, ArrowLeft } from 'lucide-react';
 
 import { useFlowStore } from '../../store';
 import { NodePalette } from '../../components/NodePalette';
@@ -85,7 +85,7 @@ export function FlowEditorPageClient() {
                         className="p-2 hover:bg-gray-100 rounded-md transition-colors"
                         onClick={handleBack}
                     >
-                        <ArrowLeft className="h-5 w-5" />
+                        <span className="text-lg">←</span>
                     </button>
                     <div>
                         <h1 className="font-semibold text-lg">Flow Editor</h1>
@@ -109,7 +109,7 @@ export function FlowEditorPageClient() {
                             "Saving..."
                         ) : (
                             <>
-                                <Save className="h-4 w-4 mr-2" />
+                                <span className="mr-2">💾</span>
                                 Save Flow
                             </>
                         )}

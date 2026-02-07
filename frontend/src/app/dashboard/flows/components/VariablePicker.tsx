@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+// import { ChevronDown } from 'lucide-react';
 
 interface VariablePickerProps {
     value: string;
@@ -89,7 +89,7 @@ export function VariablePicker({
                 className="absolute top-2 right-2 p-1 text-gray-500 hover:bg-gray-100 rounded transition"
                 title="Insert variable (Ctrl+Space)"
             >
-                <ChevronDown className="h-4 w-4" />
+                <span className="text-gray-500">▼</span>
             </button>
 
             {showMenu && (

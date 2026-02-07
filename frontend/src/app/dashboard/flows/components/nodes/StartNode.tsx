@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Play } from 'lucide-react';
+// import { Play } from 'lucide-react';
 
 export function StartNode({ data, selected }: NodeProps) {
     return (
@@ -10,7 +10,7 @@ export function StartNode({ data, selected }: NodeProps) {
       `}
         >
             <div className="flex items-center justify-center gap-2">
-                <Play className="h-5 w-5 text-green-600 fill-green-600" />
+                <span className="text-green-600">▶️</span>
                 <span className="font-semibold text-green-700">Start</span>
             </div>
 

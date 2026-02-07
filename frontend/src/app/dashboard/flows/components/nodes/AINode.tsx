@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Bot } from 'lucide-react';
+// import { Bot } from 'lucide-react';
 
 export function AINode({ data, selected }: NodeProps) {
     return (
@@ -16,7 +16,7 @@ export function AINode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <Bot className="h-4 w-4 text-indigo-600" />
+                <span className="text-indigo-600">🤖</span>
                 <span className="font-semibold text-sm text-indigo-700">AI Reply</span>
             </div>
 

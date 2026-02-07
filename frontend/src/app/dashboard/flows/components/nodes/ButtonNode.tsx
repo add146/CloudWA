@@ -1,5 +1,5 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Square } from 'lucide-react';
+// import { Square } from 'lucide-react';
 
 export function ButtonNode({ data, selected }: NodeProps) {
     const buttons = data.buttons || [];
@@ -18,7 +18,7 @@ export function ButtonNode({ data, selected }: NodeProps) {
             />
 
             <div className="flex items-center gap-2 mb-2">
-                <Square className="h-4 w-4 text-purple-500" />
+                <span className="text-purple-500">🔘</span>
                 <span className="font-semibold text-sm text-gray-700">Button</span>
             </div>
 
