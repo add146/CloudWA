@@ -106,7 +106,7 @@ export default function FlowsPage() {
 
             const data = await response.json();
             if (data.success) {
-                setFlows(data.data);
+                setFlows(Array.isArray(data.data) ? data.data : []);
                 setError(null);
             }
         } catch (err: any) {
@@ -195,7 +195,7 @@ export default function FlowsPage() {
         return (
             <div className="flex items-center justify-center h-screen">
                 <div className="flex flex-col items-center gap-2">
-                    <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+                    <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
                     <div className="text-gray-500">Loading devices...</div>
                 </div>
             </div>
@@ -231,8 +231,8 @@ export default function FlowsPage() {
                         onClick={createFlow}
                         disabled={!selectedDeviceId}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${!selectedDeviceId
-                                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                     >
                         <Plus className="h-5 w-5" />
@@ -256,7 +256,7 @@ export default function FlowsPage() {
                 </div>
             )}
 
-            {!loading && flows.length === 0 ? (
+            {!loading && (!flows || flows.length === 0) ? (
                 <div className="text-center py-16 bg-gray-50 rounded-lg border-2 border-dashed">
                     <div className="text-gray-400 mb-4">
                         <Play className="h-16 w-16 mx-auto" />
@@ -278,42 +278,42 @@ export default function FlowsPage() {
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {flows.map((flow) => (
+                    {Array.isArray(flows) && flows.map((flow) => (
                         <div
-                            key={flow.id}
+                            key={flow?.id || Math.random()}
                             className="bg-white border rounded-lg p-6 hover:shadow-md transition"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-xl font-semibold">{flow.name}</h3>
+                                        <h3 className="text-xl font-semibold">{flow?.name || 'Untitled Flow'}</h3>
                                         <span
-                                            className={`px-2 py-1 text-xs rounded-full ${flow.isActive
+                                            className={`px-2 py-1 text-xs rounded-full ${flow?.isActive
                                                 ? 'bg-green-100 text-green-700'
                                                 : 'bg-gray-100 text-gray-600'
                                                 }`}
                                         >
-                                            {flow.isActive ? 'Active' : 'Inactive'}
+                                            {flow?.isActive ? 'Active' : 'Inactive'}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            v{flow.version}
+                                            v{flow?.version || 1}
                                         </span>
                                     </div>
 
-                                    {flow.description && (
+                                    {flow?.description && (
                                         <p className="text-gray-600 mb-3">{flow.description}</p>
                                     )}
 
                                     <div className="flex items-center gap-4 text-sm text-gray-500">
                                         <div>
                                             <span className="font-medium">Keywords:</span>{' '}
-                                            {flow.triggerKeywords.length > 0
+                                            {flow?.triggerKeywords && Array.isArray(flow.triggerKeywords) && flow.triggerKeywords.length > 0
                                                 ? flow.triggerKeywords.join(', ')
                                                 : 'None'}
                                         </div>
                                         <div>
                                             <span className="font-medium">Last updated:</span>{' '}
-                                            {new Date(flow.updatedAt).toLocaleDateString()}
+                                            {flow?.updatedAt ? new Date(flow.updatedAt).toLocaleDateString() : '-'}
                                         </div>
                                     </div>
                                 </div>
@@ -330,20 +330,20 @@ export default function FlowsPage() {
                                     </button>
                                     <button
                                         onClick={() => toggleActive(flow.id, flow.isActive)}
-                                        className={`p-2 rounded-lg transition ${flow.isActive
-                                            ? 'text-green-600 hover:bg-green-50'
-                                            : 'text-gray-400 hover:bg-gray-50'
+                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition ${flow.isActive
+                                            ? 'text-green-700 bg-green-100 hover:bg-green-200'
+                                            : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                                             }`}
                                         title={flow.isActive ? 'Deactivate' : 'Activate'}
                                     >
-                                        <Power className="h-5 w-5" />
+                                        {flow.isActive ? 'ON' : 'OFF'}
                                     </button>
                                     <button
                                         onClick={() => deleteFlow(flow.id)}
                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                         title="Delete flow"
                                     >
-                                        <Trash2 className="h-5 w-5" />
+                                        <Trash className="h-5 w-5" />
                                     </button>
                                 </div>
                             </div>

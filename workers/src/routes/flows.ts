@@ -14,7 +14,7 @@ flowsRouter.use('*', authMiddleware, requireTenantAdmin);
 // LIST FLOWS FOR DEVICE
 // ============================================
 
-flowsRouter.get('/:deviceId/flows', async (c) => {
+flowsRouter.get('/devices/:deviceId/flows', async (c) => {
     try {
         const user = c.get('user');
         const deviceId = c.req.param('deviceId');
@@ -69,7 +69,7 @@ flowsRouter.get('/:deviceId/flows', async (c) => {
 // CREATE FLOW
 // ============================================
 
-flowsRouter.post('/:deviceId/flows', async (c) => {
+flowsRouter.post('/devices/:deviceId/flows', async (c) => {
     try {
         const user = c.get('user');
         const deviceId = c.req.param('deviceId');
@@ -136,7 +136,7 @@ flowsRouter.post('/:deviceId/flows', async (c) => {
 // UPDATE FLOW
 // ============================================
 
-flowsRouter.put('/:deviceId/flows/:flowId', async (c) => {
+flowsRouter.put('/devices/:deviceId/flows/:flowId', async (c) => {
     try {
         const user = c.get('user');
         const deviceId = c.req.param('deviceId');
@@ -204,7 +204,7 @@ flowsRouter.put('/:deviceId/flows/:flowId', async (c) => {
 // ACTIVATE/DEACTIVATE FLOW
 // ============================================
 
-flowsRouter.patch('/:deviceId/flows/:flowId/activate', async (c) => {
+flowsRouter.patch('/devices/:deviceId/flows/:flowId/activate', async (c) => {
     try {
         const user = c.get('user');
         const deviceId = c.req.param('deviceId');
@@ -260,7 +260,7 @@ flowsRouter.patch('/:deviceId/flows/:flowId/activate', async (c) => {
 // DELETE FLOW
 // ============================================
 
-flowsRouter.delete('/:deviceId/flows/:flowId', async (c) => {
+flowsRouter.delete('/devices/:deviceId/flows/:flowId', async (c) => {
     try {
         const user = c.get('user');
         const deviceId = c.req.param('deviceId');

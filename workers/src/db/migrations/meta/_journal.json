@@ -8,6 +8,13 @@
       "when": 1770423890358,
       "tag": "0000_fast_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1770449480773,
+      "tag": "0001_legal_iron_lad",
+      "breakpoints": true
     }
   ]
 }
