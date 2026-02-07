@@ -48,12 +48,12 @@ export default function DashboardLayout({
 
     const navigation = [
         // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // TODO: Create dashboard home
-        { name: 'Devices', href: '/dashboard/devices' },
-        { name: 'Flows', href: '/dashboard/flows' },
-        { name: 'Contacts', href: '/dashboard/contacts' },
-        { name: 'Broadcasts', href: '/dashboard/campaigns' },
-        { name: 'Knowledge Base', href: '/dashboard/kb' },
-        { name: 'Settings', href: '/dashboard/settings' },
+        { name: 'Devices', href: '/dashboard/devices', emoji: '📱' },
+        { name: 'Flows', href: '/dashboard/flows', emoji: '🔀' },
+        { name: 'Contacts', href: '/dashboard/contacts', emoji: '👥' },
+        { name: 'Broadcasts', href: '/dashboard/campaigns', emoji: '📢' },
+        { name: 'Knowledge Base', href: '/dashboard/kb', emoji: '📚' },
+        { name: 'Settings', href: '/dashboard/settings', emoji: '⚙️' },
     ];
 
     return (
@@ -88,7 +88,7 @@ export default function DashboardLayout({
                                     }`}
                             >
                                 {/* <item.icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} /> */}
-                                <span>[Icon]</span>
+                                <span className="text-lg">{item.emoji}</span>
                                 {item.name}
                             </Link>
                         );
@@ -110,7 +110,7 @@ export default function DashboardLayout({
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition"
                     >
                         {/* <LogOut className="h-5 w-5" /> */}
-                        <span>[x]</span>
+                        <span className="text-lg">🚪</span>
                         Sign Out
                     </button>
                 </div>

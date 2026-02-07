@@ -26,6 +26,7 @@ export function FlowEditorPageClient() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setDirty] = useState(false);
     const [isSidebarOpen, setSidebarOpen] = useState(true);
+    const [flowName, setFlowName] = useState('Untitled Flow');
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
 
@@ -48,6 +49,7 @@ export function FlowEditorPageClient() {
                 .then(data => {
                     if (data.success && data.data) {
                         const flowData = data.data;
+                        if (flowData.name) setFlowName(flowData.name);
                         if (flowData.nodes) setNodes(flowData.nodes);
                         if (flowData.edges) setEdges(flowData.edges);
                         // Also load JSON structure if available
@@ -88,6 +90,7 @@ export function FlowEditorPageClient() {
         setIsSaving(true);
         try {
             const flowData = {
+                name: flowName,
                 nodes,
                 edges,
             };
@@ -142,9 +145,16 @@ export function FlowEditorPageClient() {
                         <span className="text-xl group-hover:scale-110 inline-block transition-transform">←</span>
                     </button>
                     <div>
-                        <h1 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                            Flow Editor
-                        </h1>
+                        <input
+                            type="text"
+                            value={flowName}
+                            onChange={(e) => {
+                                setFlowName(e.target.value);
+                                setDirty(true);
+                            }}
+                            className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-200 rounded px-2 -ml-2"
+                            placeholder="Flow Name"
+                        />
                         <div className="flex items-center gap-2">
                             <p className="text-xs text-gray-500 font-medium">ID: {flowId}</p>
                             <span className="text-gray-300">|</span>
