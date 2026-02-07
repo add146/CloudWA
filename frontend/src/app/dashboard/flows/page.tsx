@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// import { Plus, Play, Trash, Edit, AlertCircle } from 'lucide-react';
+import { Plus, Play, Trash2, Edit, Power, Pause } from 'lucide-react';
 
 interface Flow {
     id: string;
@@ -235,7 +235,7 @@ export default function FlowsPage() {
                             : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                     >
-                        <span>[+]</span>
+                        <Plus className="w-4 h-4" />
                         Create Flow
                     </button>
                 </div>
@@ -259,7 +259,7 @@ export default function FlowsPage() {
             {!loading && (!flows || flows.length === 0) ? (
                 <div className="text-center py-16 bg-gray-50 rounded-lg border-2 border-dashed">
                     <div className="text-gray-400 mb-4">
-                        <span className="text-4xl">[PLAY]</span>
+                        <Play className="w-12 h-12 mx-auto" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-700 mb-2">
                         No flows yet
@@ -272,7 +272,7 @@ export default function FlowsPage() {
                         disabled={!selectedDeviceId}
                         className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                     >
-                        <span>[+]</span>
+                        <Plus className="w-4 h-4" />
                         Create First Flow
                     </button>
                 </div>
@@ -323,27 +323,30 @@ export default function FlowsPage() {
                                         onClick={() =>
                                             router.push(`/dashboard/flows/${flow.id}/edit`)
                                         }
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm font-medium"
                                         title="Edit flow"
                                     >
-                                        <span>[Edit]</span>
+                                        <Edit className="w-4 h-4" />
+                                        Edit
                                     </button>
                                     <button
                                         onClick={() => toggleActive(flow.id, flow.isActive)}
-                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition ${flow.isActive
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${flow.isActive
                                             ? 'text-green-700 bg-green-100 hover:bg-green-200'
                                             : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                                             }`}
                                         title={flow.isActive ? 'Deactivate' : 'Activate'}
                                     >
+                                        <Power className="w-4 h-4" />
                                         {flow.isActive ? 'ON' : 'OFF'}
                                     </button>
                                     <button
                                         onClick={() => deleteFlow(flow.id)}
-                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition text-sm font-medium"
                                         title="Delete flow"
                                     >
-                                        <span>[Delete]</span>
+                                        <Trash2 className="w-4 h-4" />
+                                        Delete
                                     </button>
                                 </div>
                             </div>
