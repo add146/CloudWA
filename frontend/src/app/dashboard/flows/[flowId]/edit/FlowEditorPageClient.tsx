@@ -27,7 +27,8 @@ export function FlowEditorPageClient() {
     const [isDirty, setDirty] = useState(false);
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
-    // Mock load flow
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
+
     // Load flow data
     useEffect(() => {
         if (flowId) {
@@ -35,18 +36,25 @@ export function FlowEditorPageClient() {
             setIsLoading(true);
 
             // Fetch flow data
-            fetch(`/api/flows/${flowId}`)
-                .then(res => res.json())
+            fetch(`${API_URL}/api/flows/${flowId}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch flow');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success && data.data) {
                         const flowData = data.data;
                         if (flowData.nodes) setNodes(flowData.nodes);
                         if (flowData.edges) setEdges(flowData.edges);
+                        // Also load JSON structure if available
+                        if (flowData.flowJson && !flowData.nodes) {
+                            if (flowData.flowJson.nodes) setNodes(flowData.flowJson.nodes);
+                            if (flowData.flowJson.edges) setEdges(flowData.flowJson.edges);
+                        }
                     }
                 })
                 .catch(err => {
                     console.error("Failed to load flow:", err);
-                    // alert("Failed to load flow data");
                 })
                 .finally(() => {
                     setIsLoading(false);
@@ -80,9 +88,12 @@ export function FlowEditorPageClient() {
                 edges,
             };
 
-            const response = await fetch(`/api/flows/${flowId}`, {
+            const response = await fetch(`${API_URL}/api/flows/${flowId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify(flowData)
             });
 

@@ -306,4 +306,131 @@ flowsRouter.delete('/devices/:deviceId/flows/:flowId', async (c) => {
     }
 });
 
+// ============================================
+// GET FLOW BY ID (DIRECT)
+// ============================================
+
+flowsRouter.get('/flows/:flowId', async (c) => {
+    try {
+        const user = c.get('user');
+        const flowId = c.req.param('flowId');
+        const db = drizzle(c.env.DB);
+
+        // Verify flow exists and user owns the tenant
+        const [flow] = await db
+            .select({
+                flow: flows,
+                device: devices,
+            })
+            .from(flows)
+            .leftJoin(devices, eq(flows.deviceId, devices.id))
+            .where(eq(flows.id, flowId))
+            .limit(1);
+
+        if (!flow || !flow.device || flow.device.tenantId !== user.tenantId) {
+            return c.json({
+                success: false,
+                error: 'Flow not found'
+            }, 404);
+        }
+
+        return c.json({
+            success: true,
+            data: {
+                id: flow.flow.id,
+                name: flow.flow.name,
+                description: flow.flow.description,
+                triggerKeywords: JSON.parse(flow.flow.triggerKeywords),
+                flowJson: JSON.parse(flow.flow.flowJson),
+                nodes: JSON.parse(flow.flow.flowJson).nodes, // Helper for frontend
+                edges: JSON.parse(flow.flow.flowJson).edges, // Helper for frontend
+                isActive: flow.flow.isActive,
+                priority: flow.flow.priority,
+                version: flow.flow.version,
+                updatedAt: flow.flow.updatedAt,
+                deviceId: flow.flow.deviceId,
+            },
+        });
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Failed to get flow'
+        }, 500);
+    }
+});
+
+// ============================================
+// UPDATE FLOW BY ID (DIRECT)
+// ============================================
+
+flowsRouter.put('/flows/:flowId', async (c) => {
+    try {
+        const user = c.get('user');
+        const flowId = c.req.param('flowId');
+        const updates = await c.req.json();
+        const db = drizzle(c.env.DB);
+
+        // Verify ownership
+        const [flow] = await db
+            .select({
+                flow: flows,
+                device: devices,
+            })
+            .from(flows)
+            .leftJoin(devices, eq(flows.deviceId, devices.id))
+            .where(eq(flows.id, flowId))
+            .limit(1);
+
+        if (!flow || !flow.device || flow.device.tenantId !== user.tenantId) {
+            return c.json({
+                success: false,
+                error: 'Flow not found'
+            }, 404);
+        }
+
+        const updateData: any = {};
+
+        if (updates.name) updateData.name = updates.name;
+        if (updates.description !== undefined) updateData.description = updates.description;
+        if (updates.triggerKeywords) updateData.triggerKeywords = JSON.stringify(updates.triggerKeywords);
+        if (updates.flowJson) {
+            updateData.flowJson = JSON.stringify(updates.flowJson);
+            updateData.version = (flow.flow.version || 0) + 1;
+        }
+        // Handle direct nodes/edges update from frontend
+        if (updates.nodes && updates.edges) {
+            updateData.flowJson = JSON.stringify({
+                nodes: updates.nodes,
+                edges: updates.edges
+            });
+            updateData.version = (flow.flow.version || 0) + 1;
+        }
+
+        if (updates.priority !== undefined) updateData.priority = updates.priority;
+
+        if (Object.keys(updateData).length > 0) {
+            updateData.updatedAt = new Date().toISOString();
+
+            await db
+                .update(flows)
+                .set(updateData)
+                .where(eq(flows.id, flowId));
+        }
+
+        return c.json({
+            success: true,
+            data: {
+                id: flowId,
+                updated: true,
+            },
+        });
+    } catch (error) {
+        console.error('Update error:', error);
+        return c.json({
+            success: false,
+            error: 'Failed to update flow'
+        }, 500);
+    }
+});
+
 export default flowsRouter;
