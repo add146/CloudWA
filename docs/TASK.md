@@ -46,20 +46,20 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 - [x] JWT token generation
 - [x] Middleware authorization
 
-### 2.2 WhatsApp Gateway - Baileys
-- [x] Durable Object setup
+### 2.2 WhatsApp Gateway - WAHA
+- [x] WAHA client integration
 - [x] QR code generation
-- [x] Session persistence (R2)
+- [x] Session management
 - [x] Send message API
 - [x] Receive message webhook
 - [x] Anti-ban typing simulation
 
 ### 2.3 WhatsApp Gateway - Cloud API
-- [ ] Webhook receiver
-- [ ] Message template support
-- [ ] Send message API
-- [ ] Media upload/download
-- [ ] Phone verification
+- [x] Webhook receiver (basic verification)
+- [x] Message template support
+- [x] Send message API (text + template)
+- [x] Media upload/download
+- [x] Webhook signature verification (HMAC-SHA256)
 
 ### 2.4 AI Integration
 - [x] AI provider router
@@ -74,27 +74,27 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 ## Phase 3: Flow Builder 📊
 
 ### 3.1 Flow Engine
-- [ ] Node execution engine
-- [ ] Condition evaluator
-- [ ] Variable resolver
-- [ ] Loop detection
+- [x] Node execution engine
+- [x] Condition evaluator
+- [x] Variable resolver
+- [x] Loop detection
 
 ### 3.2 Node Types
-- [ ] Start node
-- [ ] Message node (text, image, video)
-- [ ] Button node
-- [ ] List node
-- [ ] Condition node
-- [ ] AI Reply node
-- [ ] Delay node
-- [ ] Human takeover node
-- [ ] End node
+- [x] Start node
+- [x] Message node (text, image, video)
+- [x] Button node
+- [x] List node
+- [x] Condition node
+- [x] AI Reply node
+- [x] Delay node
+- [x] Human takeover node
+- [x] End node (implicit - flow completes when no next node)
 
 ### 3.3 Visual Editor
-- [ ] React Flow canvas
-- [ ] Node palette
-- [ ] Connection handling
-- [ ] Save/load flows
+- [x] React Flow canvas
+- [x] Node palette
+- [x] Connection handling
+- [x] Save/load flows
 - [ ] Flow versioning
 
 ---

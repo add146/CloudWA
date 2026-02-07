@@ -2,7 +2,7 @@
 
 ## Overview
 
-CloudWA Flow menggunakan arsitektur **Full Serverless** dengan Cloudflare sebagai satu-satunya infrastructure. WhatsApp Gateway dibangun sendiri menggunakan **Baileys + Durable Objects**.
+CloudWA Flow menggunakan arsitektur **Full Serverless** dengan Cloudflare sebagai satu-satunya infrastructure. WhatsApp Gateway menggunakan **WAHA (WhatsApp HTTP API)** sebagai gateway utama.
 
 ---
 
@@ -19,7 +19,7 @@ CloudWA Flow menggunakan arsitektur **Full Serverless** dengan Cloudflare sebaga
 │  │ • Next.js (SSR)  │◄──►│ • Auth API       │◄──►│ • WA Sessions  │ │
 │  │ • Dashboard UI   │    │ • Flow Executor  │    │ • WebSocket    │ │
 │  │ • Flow Builder   │    │ • Broadcast API  │    │ • State Persist│ │
-│  │ • Landing Page   │    │ • Webhook Handler│    │ • Baileys Lib  │ │
+│  │ • Landing Page   │    │ • Webhook Handler│    │ • WAHA Client  │ │
 │  └──────────────────┘    └────────┬─────────┘    └───────┬────────┘ │
 │                                   │                      │          │
 │    ┌──────────────────────────────┼──────────────────────┼────┐     │
@@ -79,17 +79,17 @@ CloudWA Flow menggunakan arsitektur **Full Serverless** dengan Cloudflare sebaga
 
 | Gateway | Technology | Use Case |
 |---------|------------|----------|
-| **Baileys + DO** | Self-built | Personal WA, no verification needed |
+| **WAHA** | WhatsApp HTTP API | Personal WA, self-hosted gateway |
 | **Cloud API** | Official Meta | Business WA, unlimited messaging |
 
-#### Option A: Baileys + Durable Objects (Self-Built)
+#### Option A: WAHA (WhatsApp HTTP API)
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| **Library** | Baileys | WhatsApp Web Protocol |
-| **Runtime** | Durable Objects | Persistent WebSocket |
-| **Storage** | R2 | Session credentials |
-| **Anti-Ban** | Custom implementation | Typing simulation |
+| **Gateway** | WAHA | WhatsApp Web Protocol via HTTP API |
+| **Runtime** | Docker / External Server | Persistent session |
+| **Storage** | WAHA built-in | Session management |
+| **Anti-Ban** | WAHA + Custom | Typing simulation |
 
 #### Option B: WhatsApp Cloud API (Official Meta)
 
@@ -118,158 +118,141 @@ Base URL: https://graph.facebook.com/v21.0/{phone_number_id}
 
 ## 3. WhatsApp Gateway Architecture
 
-### 3.1 Durable Object per Device
+### 3.1 WAHA Gateway Overview
 
-Setiap nomor WhatsApp yang terhubung memiliki Durable Object sendiri:
+WAHA (WhatsApp HTTP API) adalah Docker container yang menjalankan WhatsApp libraries dan menyediakan REST API yang dapat dipanggil dari Workers.
+
+```
+┌─────────────────────────────────────────────────┐
+│         Cloudflare Workers (Backend)            │
+│                                                  │
+│  ┌───────────────────────────────────────┐      │
+│  │  Device Routes                        │      │
+│  │  - POST /api/devices (start session)  │      │
+│  │  - GET  /api/devices/:id (get QR)     │      │
+│  │  - POST /api/devices/:id/send         │      │
+│  │  - DELETE /api/devices/:id            │      │
+│  └─────────────┬─────────────────────────┘      │
+│                │                                 │
+│                │ HTTP REST API                   │
+└────────────────┼─────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│         WAHA Server (Docker)                    │
+│         Railway / VPS / Self-hosted             │
+│                                                  │
+│  ┌───────────────────────────────────────┐      │
+│  │  WhatsApp Sessions                    │      │
+│  │  - Session management                 │      │
+│  │  - QR code generation                 │      │
+│  │  - Message sending/receiving          │      │
+│  │  - Built-in session storage           │      │
+│  └───────────────────────────────────────┘      │
+│                                                  │
+└─────────────────────────────────────────────────┘
+                 │
+                 │ WebSocket
+                 ▼
+       ┌─────────────────────┐
+       │   WhatsApp Servers  │
+       └─────────────────────┘
+```
+
+### 3.2 WAHA Client Implementation
 
 ```typescript
-// src/durable-objects/WhatsAppSession.ts
-import makeWASocket, { 
-  DisconnectReason, 
-  useMultiFileAuthState 
-} from '@whiskeysockets/baileys';
+// src/gateway/waha-client.ts
+import type { WAHAConfig, WAHASession } from './waha-client';
 
-export class WhatsAppSession {
-  private sock: ReturnType<typeof makeWASocket> | null = null;
-  private state: DurableObjectState;
-  private env: Env;
+export class WAHAClient {
+  constructor(private config: WAHAConfig) {}
   
-  constructor(state: DurableObjectState, env: Env) {
-    this.state = state;
-    this.env = env;
-  }
-  
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    
-    switch (url.pathname) {
-      case '/connect':
-        return this.handleConnect();
-      case '/send':
-        return this.handleSendMessage(request);
-      case '/disconnect':
-        return this.handleDisconnect();
-      case '/status':
-        return this.handleStatus();
-      default:
-        return new Response('Not found', { status: 404 });
-    }
-  }
-  
-  private async handleConnect(): Promise<Response> {
-    // Load auth state from R2
-    const { state, saveCreds } = await this.loadAuthState();
-    
-    this.sock = makeWASocket({
-      auth: state,
-      printQRInTerminal: false,
+  // Start session and get QR
+  async startSession(sessionName: string, webhookUrl?: string): Promise<WAHASession> {
+    const response = await fetch(`${this.config.baseUrl}/api/sessions/${sessionName}/start`, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': this.config.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        webhooks: webhookUrl ? [{
+          url: webhookUrl,
+          events: ['message', 'session.status'],
+        }] : undefined,
+      }),
     });
     
-    // Handle events
-    this.sock.ev.on('creds.update', saveCreds);
-    this.sock.ev.on('connection.update', (update) => {
-      this.handleConnectionUpdate(update);
+    return await response.json();
+  }
+  
+  // Send message
+  async sendMessage(params: { session: string; chatId: string; text: string }) {
+    const response = await fetch(`${this.config.baseUrl}/api/sendText`, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': this.config.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session: params.session,
+        chatId: params.chatId.includes('@') ? params.chatId : `${params.chatId}@c.us`,
+        text: params.text,
+      }),
     });
-    this.sock.ev.on('messages.upsert', (msg) => {
-      this.handleIncomingMessage(msg);
-    });
     
-    return new Response(JSON.stringify({ status: 'connecting' }));
-  }
-  
-  private async handleSendMessage(request: Request): Promise<Response> {
-    const { chatId, message, withTyping } = await request.json();
-    
-    if (!this.sock) {
-      return new Response('Not connected', { status: 400 });
-    }
-    
-    if (withTyping) {
-      await this.sendWithTypingSimulation(chatId, message);
-    } else {
-      await this.sock.sendMessage(chatId, { text: message });
-    }
-    
-    return new Response(JSON.stringify({ success: true }));
-  }
-  
-  // Anti-ban: Typing simulation
-  private async sendWithTypingSimulation(
-    jid: string, 
-    message: string
-  ): Promise<void> {
-    // 1. Subscribe to presence
-    await this.sock!.presenceSubscribe(jid);
-    
-    // 2. Send "composing" (typing indicator)
-    await this.sock!.sendPresenceUpdate('composing', jid);
-    
-    // 3. Wait based on message length
-    const typingDelay = this.calculateTypingDelay(message);
-    await this.sleep(typingDelay);
-    
-    // 4. Send message
-    await this.sock!.sendMessage(jid, { text: message });
-    
-    // 5. Stop typing
-    await this.sock!.sendPresenceUpdate('paused', jid);
-  }
-  
-  private calculateTypingDelay(message: string): number {
-    const wordsPerMinute = 40;
-    const words = message.split(' ').length;
-    const baseDelay = (words / wordsPerMinute) * 60 * 1000;
-    const randomFactor = 0.8 + Math.random() * 0.4;
-    return Math.min(Math.max(baseDelay * randomFactor, 1000), 5000);
-  }
-  
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-  
-  private async loadAuthState() {
-    // Load from R2 storage
-    const deviceId = this.state.id.toString();
-    const bucket = this.env.SESSION_BUCKET;
-    
-    // ... R2 auth state implementation
+    return await response.json();
   }
 }
 ```
 
-### 3.2 Worker Entry Point
+### 3.3 Worker Routes Integration
 
 ```typescript
-// src/index.ts
-import { Hono } from 'hono';
+// src/routes/devices.ts
+import { WAHAClient } from '@/gateway/waha-client';
 
-const app = new Hono<{ Bindings: Env }>();
-
-// Route to Durable Object
-app.post('/api/devices/:deviceId/send', async (c) => {
-  const deviceId = c.req.param('deviceId');
-  const id = c.env.WHATSAPP_SESSION.idFromName(deviceId);
-  const stub = c.env.WHATSAPP_SESSION.get(id);
+// Create device and get QR
+devicesRouter.post('/', async (c) => {
+  const waha = new WAHAClient({
+    baseUrl: c.env.WAHA_BASE_URL,
+    apiKey: c.env.WAHA_API_KEY,
+  });
   
-  const body = await c.req.json();
-  return stub.fetch(new Request('http://internal/send', {
-    method: 'POST',
-    body: JSON.stringify(body)
-  }));
+  // Start WAHA session
+  const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha`;
+  await waha.startSession(device.id, webhookUrl);
+  
+  // Get QR code
+  const qr = await waha.getQRCode(device.id);
+  
+  return c.json({
+    success: true,
+    data: {
+      id: device.id,
+      qrCode: `data:${qr.mimetype};base64,${qr.data}`,
+    },
+  });
 });
 
-app.get('/api/devices/:deviceId/qr', async (c) => {
-  const deviceId = c.req.param('deviceId');
-  const id = c.env.WHATSAPP_SESSION.idFromName(deviceId);
-  const stub = c.env.WHATSAPP_SESSION.get(id);
+// Send message
+devicesRouter.post('/:id/send', async (c) => {
+  const { chatId, message } = await c.req.json();
   
-  return stub.fetch(new Request('http://internal/connect'));
+  const waha = new WAHAClient({
+    baseUrl: c.env.WAHA_BASE_URL,
+    apiKey: c.env.WAHA_API_KEY,
+  });
+  
+  await waha.sendMessage({
+    session: device.id,
+    chatId,
+    text: message,
+  });
+  
+  return c.json({ success: true });
 });
-
-export default app;
-
-// Export Durable Object
-export { WhatsAppSession } from './durable-objects/WhatsAppSession';
 ```
 
 ---
@@ -355,39 +338,33 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 ## 5. Anti-Ban Implementation
 
-### 5.1 Typing Simulation dengan Baileys
+### 5.1 Typing Simulation dengan WAHA
 
 ```typescript
-// Fungsi helper untuk typing simulation
+// Fungsi helper untuk typing simulation via WAHA
 export async function sendWithAntiBan(
-  sock: WASocket,
-  jid: string,
+  wahaClient: WAHAClient,
+  chatId: string,
   message: string,
   config: AntiBanConfig
 ): Promise<void> {
   if (!config.enabled) {
-    await sock.sendMessage(jid, { text: message });
+    await wahaClient.sendText(chatId, message);
     return;
   }
   
-  // 1. Subscribe to presence updates
-  await sock.presenceSubscribe(jid);
+  // 1. Start typing indicator
+  await wahaClient.startTyping(chatId);
   
-  // 2. Mark as online
-  await sock.sendPresenceUpdate('available');
-  
-  // 3. Start typing indicator
-  await sock.sendPresenceUpdate('composing', jid);
-  
-  // 4. Calculate and wait for typing delay
+  // 2. Calculate and wait for typing delay
   const delay = calculateTypingDelay(message, config);
   await sleep(delay);
   
-  // 5. Send the message
-  await sock.sendMessage(jid, { text: message });
+  // 3. Send the message
+  await wahaClient.sendText(chatId, message);
   
-  // 6. Stop typing
-  await sock.sendPresenceUpdate('paused', jid);
+  // 4. Stop typing
+  await wahaClient.stopTyping(chatId);
 }
 
 function calculateTypingDelay(
@@ -491,7 +468,6 @@ function calculateMessageGap(config: RateConfig): number {
     "lucide-react": "^0.300.0",
     "hono": "^4.0.0",
     "drizzle-orm": "^0.29.0",
-    "@whiskeysockets/baileys": "^6.6.0",
     "jose": "^5.2.0",
     "qrcode": "^1.5.0"
   },
@@ -575,6 +551,6 @@ jobs:
 | **Vectorize** | 30M vectors | $0.01/1K vectors |
 | **Workers AI** | 10K neurons/day | Pay-per-use |
 
-**Total Estimate: ~$25-35/mo** for 10K active users
+**Total Estimate: ~$25-35/mo** for 10K active users (tidak termasuk WAHA server)
 
-> ✅ Lebih hemat dibanding opsi WAHA karena tidak perlu server terpisah!
+> 💡 WAHA dapat di-host secara self-hosted atau menggunakan layanan cloud terpisah.

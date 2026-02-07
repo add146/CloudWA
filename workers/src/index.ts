@@ -52,10 +52,21 @@ app.post('/api/webhook/waha', async (c) => {
 
         console.log('WAHA webhook:', { event, session, data });
 
-        // TODO: Implement flow execution logic
-        // 1. Find device by session name (device.id)
-        // 2. Process incoming message
-        // 3. Execute flows
+        if (event === 'message' && data?.text) {
+            // Trigger flow execution
+            const { triggerFlow } = await import('@/engine/flow-trigger');
+
+            try {
+                await triggerFlow(
+                    c.env,
+                    session, // deviceId
+                    data.from, // contactPhone
+                    data.text.body // incomingMessage
+                );
+            } catch (error: any) {
+                console.error('Flow execution error:', error.message);
+            }
+        }
 
         return c.json({
             success: true,
@@ -74,7 +85,7 @@ app.post('/api/webhook/waha', async (c) => {
 // Webhook endpoint for WhatsApp Cloud API
 app.post('/api/webhook/cloud-api', async (c) => {
     try {
-        // Verification for webhook setup
+        // Verification for webhook setup (GET request from Meta)
         const mode = c.req.query('hub.mode');
         const token = c.req.query('hub.verify_token');
         const challenge = c.req.query('hub.challenge');
@@ -83,20 +94,60 @@ app.post('/api/webhook/cloud-api', async (c) => {
             return new Response(challenge, { status: 200 });
         }
 
+        // Verify webhook signature for security
+        const signature = c.req.header('X-Hub-Signature-256') || '';
+        const rawBody = await c.req.text();
+
+        if (c.env.WHATSAPP_APP_SECRET) {
+            const { CloudAPIClient } = await import('@/gateway/cloud-api-client');
+            const isValid = await CloudAPIClient.verifyWebhookSignature(
+                rawBody,
+                signature,
+                c.env.WHATSAPP_APP_SECRET
+            );
+
+            if (!isValid) {
+                console.error('Invalid webhook signature');
+                return c.json({ error: 'Invalid signature' }, 401);
+            }
+        }
+
         // Process incoming message
-        const payload = await c.req.json();
+        const payload = JSON.parse(rawBody);
+        const { CloudAPIClient } = await import('@/gateway/cloud-api-client');
+        const parsed = CloudAPIClient.parseWebhook(payload);
 
-        console.log('Cloud API webhook:', payload);
+        if (parsed) {
+            // Trigger flow execution
+            const { triggerFlow } = await import('@/engine/flow-trigger');
 
-        // TODO: Implement flow execution logic
+            try {
+                // Extract phone number ID to find device
+                const phoneNumberId = payload.entry[0]?.changes[0]?.value?.metadata?.phone_number_id;
+
+                // TODO: Map phoneNumberId to deviceId
+                // For now, we'll need to store phoneNumber mapping in device table
+                console.log('Cloud API webhook received:', {
+                    from: parsed.from,
+                    message: parsed.message,
+                    phoneNumberId,
+                });
+
+                // Uncomment when phone mapping is implemented:
+                // await triggerFlow(c.env, deviceId, parsed.from, parsed.message);
+            } catch (error: any) {
+                console.error('Flow execution error:', error.message);
+            }
+
+            // Future: Find device by phone_number_id, execute flows, send responses
+        }
 
         return c.json({
             success: true,
-            data: {
-                received: true,
-            },
+            data: { received: true },
         });
-    } catch (error) {
+    } catch (error: any) {
+        console.error('Webhook processing error:', error);
         return c.json({
             success: false,
             error: 'Webhook processing failed',

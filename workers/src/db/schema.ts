@@ -54,11 +54,11 @@ export const devices = sqliteTable('devices', {
     displayName: text('display_name'),
 
     // Gateway Configuration
-    gatewayType: text('gateway_type').default('baileys'), // 'baileys' or 'cloud_api'
+    gatewayType: text('gateway_type').default('waha'), // 'waha' or 'cloud_api'
 
-    // Baileys-specific
-    sessionStatus: text('session_status').default('disconnected'), // connected, scanning, disconnected
-    baileysSessionData: text('baileys_session_data'), // R2 reference
+    // WAHA-specific (WhatsApp HTTP API)
+    sessionStatus: text('session_status').default('disconnected'), // STOPPED, STARTING, SCAN_QR_CODE, WORKING, FAILED
+    wahaSessionData: text('waha_session_data'), // WAHA session metadata
 
     // Cloud API-specific
     cloudApiConfig: text('cloud_api_config').default('{}'), // JSON

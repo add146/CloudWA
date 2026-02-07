@@ -142,10 +142,11 @@ wrangler deploy
 
 ## Step 7: Connect WhatsApp Device
 
-### Option A: Baileys (Personal WA)
+### Option A: WAHA (Personal WA)
 1. Tenant login → Devices → Add Device
-2. Pilih "Baileys (Personal WhatsApp)"
-3. Scan QR code dengan WhatsApp mobile
+2. Pilih "WAHA (Personal WhatsApp)"
+3. Input WAHA server URL dan API Key
+4. Scan QR code dengan WhatsApp mobile
 
 ### Option B: Cloud API (Business WA)
 1. Tenant login → Devices → Add Device

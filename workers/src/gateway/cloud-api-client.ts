@@ -13,7 +13,7 @@ export interface CloudAPIConfig {
 
 export interface CloudAPISendMessageRequest {
     to: string; // Phone number (e.g., "628123456789")
-    type: 'text' | 'template' | 'image' | 'document';
+    type: 'text' | 'template' | 'image' | 'document' | 'video' | 'audio';
     text?: {
         body: string;
         preview_url?: boolean;
@@ -24,6 +24,26 @@ export interface CloudAPISendMessageRequest {
             code: string;
         };
         components?: any[];
+    };
+    image?: {
+        id?: string;
+        link?: string;
+        caption?: string;
+    };
+    document?: {
+        id?: string;
+        link?: string;
+        filename?: string;
+        caption?: string;
+    };
+    video?: {
+        id?: string;
+        link?: string;
+        caption?: string;
+    };
+    audio?: {
+        id?: string;
+        link?: string;
     };
 }
 
@@ -85,6 +105,10 @@ export class CloudAPIClient {
                     type: params.type,
                     ...(params.text && { text: params.text }),
                     ...(params.template && { template: params.template }),
+                    ...(params.image && { image: params.image }),
+                    ...(params.document && { document: params.document }),
+                    ...(params.video && { video: params.video }),
+                    ...(params.audio && { audio: params.audio }),
                 }),
             }
         );
@@ -150,16 +174,178 @@ export class CloudAPIClient {
     }
 
     /**
-     * Verify webhook signature (for security)
+     * Upload media file to WhatsApp
+     * Returns media ID for use in send message
      */
-    static verifyWebhookSignature(
+    async uploadMedia(file: Blob | ArrayBuffer, mimeType: string): Promise<{ id: string }> {
+        const formData = new FormData();
+        formData.append('file', file instanceof ArrayBuffer ? new Blob([file], { type: mimeType }) : file);
+        formData.append('messaging_product', 'whatsapp');
+        formData.append('type', mimeType);
+
+        const response = await fetch(
+            `https://graph.facebook.com/${this.apiVersion}/${this.config.phoneNumberId}/media`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.config.accessToken}`,
+                },
+                body: formData,
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Media upload error: ${JSON.stringify(error)}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Get media download URL from media ID
+     */
+    async getMediaUrl(mediaId: string): Promise<{
+        url: string;
+        mime_type: string;
+        sha256: string;
+        file_size: number;
+    }> {
+        const response = await fetch(
+            `https://graph.facebook.com/${this.apiVersion}/${mediaId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${this.config.accessToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Get media URL error: ${JSON.stringify(error)}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Download media file from URL
+     */
+    async downloadMedia(url: string): Promise<ArrayBuffer> {
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${this.config.accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Media download error: ${response.statusText}`);
+        }
+
+        return await response.arrayBuffer();
+    }
+
+    /**
+     * Send image message
+     */
+    async sendImage(to: string, mediaId: string, caption?: string): Promise<any> {
+        return this.sendMessage({
+            to,
+            type: 'image',
+            image: {
+                id: mediaId,
+                caption,
+            },
+        });
+    }
+
+    /**
+     * Send document message
+     */
+    async sendDocument(
+        to: string,
+        mediaId: string,
+        filename?: string,
+        caption?: string
+    ): Promise<any> {
+        return this.sendMessage({
+            to,
+            type: 'document',
+            document: {
+                id: mediaId,
+                filename,
+                caption,
+            },
+        });
+    }
+
+    /**
+     * Send video message
+     */
+    async sendVideo(to: string, mediaId: string, caption?: string): Promise<any> {
+        return this.sendMessage({
+            to,
+            type: 'video',
+            video: {
+                id: mediaId,
+                caption,
+            },
+        });
+    }
+
+    /**
+     * Send audio message
+     */
+    async sendAudio(to: string, mediaId: string): Promise<any> {
+        return this.sendMessage({
+            to,
+            type: 'audio',
+            audio: {
+                id: mediaId,
+            },
+        });
+    }
+
+    /**
+     * Verify webhook signature using HMAC-SHA256
+     */
+    static async verifyWebhookSignature(
         payload: string,
         signature: string,
         appSecret: string
-    ): boolean {
-        // Implementation would use crypto for HMAC validation
-        // For now, simplified version
-        return true; // TODO: Implement proper verification
+    ): Promise<boolean> {
+        try {
+            // Remove 'sha256=' prefix from signature
+            const expectedSignature = signature.replace('sha256=', '');
+
+            // Generate HMAC-SHA256 hash
+            const encoder = new TextEncoder();
+            const key = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(appSecret),
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+            );
+
+            const hashBuffer = await crypto.subtle.sign(
+                'HMAC',
+                key,
+                encoder.encode(payload)
+            );
+
+            // Convert to hex string
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const computedSignature = hashArray
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+
+            // Constant-time comparison
+            return computedSignature === expectedSignature;
+        } catch (error) {
+            console.error('Webhook signature verification error:', error);
+            return false;
+        }
     }
 
     /**

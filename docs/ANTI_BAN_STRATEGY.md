@@ -2,7 +2,7 @@
 
 ## Overview
 
-Dokumen ini menjelaskan strategi untuk menghindari pemblokiran nomor WhatsApp menggunakan **Baileys library** pada Durable Objects.
+Dokumen ini menjelaskan strategi untuk menghindari pemblokiran nomor WhatsApp menggunakan **WAHA (WhatsApp HTTP API)** gateway.
 
 > ⚠️ **PENTING**: WhatsApp secara aktif mendeteksi dan memblokir nomor yang melakukan automasi tidak natural. Implementasi anti-ban adalah **WAJIB**.
 
@@ -20,32 +20,33 @@ Dokumen ini menjelaskan strategi untuk menghindari pemblokiran nomor WhatsApp me
 
 ---
 
-## 2. Baileys Anti-Ban Features
+## 2. WAHA Anti-Ban Features
 
 ### 2.1 Presence Update
 
-Baileys menyediakan API untuk mengatur presence (status online/typing):
+WAHA menyediakan API untuk mengatur presence (status online/typing):
 
 ```typescript
-// Set online status
-await sock.sendPresenceUpdate('available');
-
-// Set typing indicator
-await sock.sendPresenceUpdate('composing', jid);
+// Start typing indicator
+await wahaClient.startTyping(chatId);
 
 // Stop typing
-await sock.sendPresenceUpdate('paused', jid);
+await wahaClient.stopTyping(chatId);
 
-// Set offline
-await sock.sendPresenceUpdate('unavailable');
+// Send presence update
+await wahaClient.setPresence('online'); // or 'offline'
 ```
 
-### 2.2 Presence Subscribe
+### 2.2 Sending Messages
 
-Sebelum kirim typing, subscribe ke presence contact:
+WAHA menyediakan berbagai endpoint untuk mengirim pesan:
 
 ```typescript
-await sock.presenceSubscribe(jid);
+// Send text message
+await wahaClient.sendText(chatId, 'Hello!');
+
+// Send image
+await wahaClient.sendImage(chatId, imageUrl, 'caption');
 ```
 
 ### 2.3 Read Receipt
@@ -53,7 +54,7 @@ await sock.presenceSubscribe(jid);
 Menandai pesan sebagai sudah dibaca:
 
 ```typescript
-await sock.readMessages([messageKey]);
+await wahaClient.markAsRead(chatId, messageId);
 ```
 
 ---
@@ -109,7 +110,7 @@ await sock.readMessages([messageKey]);
 
 ---
 
-## 4. Implementasi dengan Baileys
+## 4. Implementasi dengan WAHA
 
 ### 4.1 Core Anti-Ban Function
 
@@ -124,51 +125,36 @@ export interface AntiBanConfig {
 }
 
 export async function sendWithAntiBan(
-  sock: WASocket,
-  jid: string,
-  message: string | AnyMessageContent,
+  wahaClient: WAHAClient,
+  chatId: string,
+  message: string,
   config: AntiBanConfig
 ): Promise<void> {
   // Skip if disabled
   if (!config.enabled) {
-    await sock.sendMessage(jid, 
-      typeof message === 'string' ? { text: message } : message
-    );
+    await wahaClient.sendText(chatId, message);
     return;
   }
   
   try {
-    // 1. Subscribe to presence updates for this contact
-    await sock.presenceSubscribe(jid);
+    // 1. Start typing indicator
+    await wahaClient.startTyping(chatId);
     
-    // 2. Set ourselves as online
-    await sock.sendPresenceUpdate('available');
-    
-    // 3. Start typing indicator
-    await sock.sendPresenceUpdate('composing', jid);
-    
-    // 4. Calculate natural typing delay
-    const messageText = typeof message === 'string' 
-      ? message 
-      : (message as any).text || '';
-    const delay = calculateTypingDelay(messageText, config);
+    // 2. Calculate natural typing delay
+    const delay = calculateTypingDelay(message, config);
     
     await sleep(delay);
     
-    // 5. Send the actual message
-    await sock.sendMessage(jid, 
-      typeof message === 'string' ? { text: message } : message
-    );
+    // 3. Send the actual message
+    await wahaClient.sendText(chatId, message);
     
-    // 6. Stop typing indicator
-    await sock.sendPresenceUpdate('paused', jid);
+    // 4. Stop typing indicator
+    await wahaClient.stopTyping(chatId);
     
   } catch (error) {
     console.error('Anti-ban send failed:', error);
     // Fallback to direct send
-    await sock.sendMessage(jid, 
-      typeof message === 'string' ? { text: message } : message
-    );
+    await wahaClient.sendText(chatId, message);
   }
 }
 
@@ -205,13 +191,15 @@ function sleep(ms: number): Promise<void> {
 }
 ```
 
-### 4.2 Durable Object Integration
+### 4.2 WAHA Client Integration
 
 ```typescript
-// src/durable-objects/WhatsAppSession.ts
+// src/gateway/waha-client.ts
 
-export class WhatsAppSession {
-  private sock: WASocket | null = null;
+export class WAHAClient {
+  private baseUrl: string;
+  private apiKey: string;
+  private session: string;
   private config: AntiBanConfig = {
     enabled: true,
     typingMin: 1,
@@ -219,32 +207,44 @@ export class WhatsAppSession {
     sendReadReceipt: true
   };
   
-  async handleSendMessage(request: Request): Promise<Response> {
-    const { chatId, message, useAntiBan = true } = await request.json();
-    
-    if (!this.sock) {
-      return Response.json({ error: 'Not connected' }, { status: 400 });
-    }
-    
-    const jid = chatId.includes('@') ? chatId : `${chatId}@s.whatsapp.net`;
-    
+  constructor(baseUrl: string, apiKey: string, session: string) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+    this.session = session;
+  }
+  
+  async sendMessage(chatId: string, message: string, useAntiBan = true): Promise<Response> {
     if (useAntiBan && this.config.enabled) {
-      await sendWithAntiBan(this.sock, jid, message, this.config);
+      await sendWithAntiBan(this, chatId, message, this.config);
     } else {
-      await this.sock.sendMessage(jid, { text: message });
+      await this.sendText(chatId, message);
     }
     
     return Response.json({ success: true });
   }
   
-  async handleUpdateConfig(request: Request): Promise<Response> {
-    const newConfig = await request.json();
-    this.config = { ...this.config, ...newConfig };
-    
-    // Persist to storage
-    await this.state.storage.put('antiBanConfig', this.config);
-    
-    return Response.json({ success: true, config: this.config });
+  async startTyping(chatId: string): Promise<void> {
+    await fetch(`${this.baseUrl}/api/startTyping`, {
+      method: 'POST',
+      headers: { 'X-Api-Key': this.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, session: this.session })
+    });
+  }
+  
+  async stopTyping(chatId: string): Promise<void> {
+    await fetch(`${this.baseUrl}/api/stopTyping`, {
+      method: 'POST',
+      headers: { 'X-Api-Key': this.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, session: this.session })
+    });
+  }
+  
+  async sendText(chatId: string, text: string): Promise<void> {
+    await fetch(`${this.baseUrl}/api/sendText`, {
+      method: 'POST',
+      headers: { 'X-Api-Key': this.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, text, session: this.session })
+    });
   }
 }
 ```
@@ -262,24 +262,15 @@ export async function handleBroadcastBatch(
     const item = msg.body;
     
     try {
-      // Get the Durable Object for this device
-      const id = env.WHATSAPP_SESSION.idFromName(item.deviceId);
-      const stub = env.WHATSAPP_SESSION.get(id);
+      // Get WAHA client for this device
+      const wahaClient = new WAHAClient(
+        env.WAHA_BASE_URL,
+        env.WAHA_API_KEY,
+        item.deviceId
+      );
       
       // Send with anti-ban enabled
-      const response = await stub.fetch(new Request('http://internal/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: item.phone,
-          message: item.renderedMessage,
-          useAntiBan: true
-        })
-      }));
-      
-      if (!response.ok) {
-        throw new Error(`Send failed: ${response.status}`);
-      }
+      await wahaClient.sendMessage(item.phone, item.renderedMessage, true);
       
       // Update database status
       await updateCampaignItemStatus(env.DB, item.id, 'sent');
@@ -443,30 +434,30 @@ async function checkCampaignHealth(
 ### 7.3 Connection Health
 
 ```typescript
-// Monitor connection in Durable Object
-sock.ev.on('connection.update', async (update) => {
-  const { connection, lastDisconnect } = update;
+// Monitor WAHA session status via webhook
+async function handleSessionStatusWebhook(payload: WAHAWebhookPayload) {
+  const { event, session, payload: data } = payload;
   
-  if (connection === 'close') {
-    const reason = (lastDisconnect?.error as any)?.output?.statusCode;
+  if (event === 'session.status') {
+    const status = data.status;
     
-    if (reason === DisconnectReason.loggedOut) {
-      // User logged out - need to re-scan QR
-      await this.notifyDisconnected('logged_out');
-    } else if (reason === DisconnectReason.banned) {
-      // Number is banned!
-      await this.notifyDisconnected('banned');
-      await sendAlert(this.env, {
+    if (status === 'SCAN_QR_CODE') {
+      // Need to re-scan QR
+      await notifyDisconnected(session, 'qr_required');
+    } else if (status === 'FAILED') {
+      // Session failed - possibly banned
+      await notifyDisconnected(session, 'failed');
+      await sendAlert({
         type: 'critical',
-        message: `Device ${this.deviceId} has been BANNED by WhatsApp`,
-        action: 'Contact WhatsApp support or use a different number'
+        message: `Device ${session} session FAILED`,
+        action: 'Check WAHA logs and reconnect'
       });
-    } else {
-      // Try to reconnect
-      await this.reconnect();
+    } else if (status === 'WORKING') {
+      // Session is connected and working
+      await updateDeviceStatus(session, 'connected');
     }
   }
-});
+}
 ```
 
 ---
