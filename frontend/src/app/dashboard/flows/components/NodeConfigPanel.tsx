@@ -135,7 +135,7 @@ function ButtonConfig({ node, onUpdate }: any) {
                                 onClick={() => removeButton(idx)}
                                 className="p-1 text-red-600 hover:bg-red-50 rounded"
                             >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash className="h-4 w-4" />
                             </button>
                         </div>
                     ))}
