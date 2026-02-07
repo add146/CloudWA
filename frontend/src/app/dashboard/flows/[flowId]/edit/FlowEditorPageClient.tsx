@@ -18,21 +18,46 @@ export function FlowEditorPageClient() {
     // State management from store with only existing methods
     const {
         nodes, edges,
-        onNodesChange, onEdgesChange, onConnect
+        onNodesChange, onEdgesChange, onConnect,
+        resetFlow, setNodes, setEdges
     } = useFlowStore();
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isDirty, setDirty] = useState(false); // Local state for now
+    const [isDirty, setDirty] = useState(false);
+    const [isSidebarOpen, setSidebarOpen] = useState(true);
 
     // Mock load flow
+    // Load flow data
     useEffect(() => {
         if (flowId) {
-            // Simulate loading
-            const timer = setTimeout(() => setIsLoading(false), 500);
-            return () => clearTimeout(timer);
+            resetFlow(); // Clear previous state first
+            setIsLoading(true);
+
+            // Fetch flow data
+            fetch(`/api/flows/${flowId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const flowData = data.data;
+                        if (flowData.nodes) setNodes(flowData.nodes);
+                        if (flowData.edges) setEdges(flowData.edges);
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to load flow:", err);
+                    // alert("Failed to load flow data");
+                })
+                .finally(() => {
+                    setIsLoading(false);
+                });
         }
-    }, [flowId]);
+
+        // Cleanup on unmount
+        return () => {
+            resetFlow();
+        };
+    }, [flowId, resetFlow, setNodes, setEdges]);
 
     // Handle unsaved changes warning
     useEffect(() => {
@@ -50,12 +75,25 @@ export function FlowEditorPageClient() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            // Mock save delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setDirty(false);
-            // Simple alert for now
-            alert("Flow saved successfully!");
+            const flowData = {
+                nodes,
+                edges,
+            };
+
+            const response = await fetch(`/api/flows/${flowId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(flowData)
+            });
+
+            if (response.ok) {
+                setDirty(false);
+                alert("Flow saved successfully!");
+            } else {
+                throw new Error("Failed to save");
+            }
         } catch (error) {
+            console.error(error);
             alert("Failed to save flow.");
         } finally {
             setIsSaving(false);
@@ -92,7 +130,16 @@ export function FlowEditorPageClient() {
                         <h1 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                             Flow Editor
                         </h1>
-                        <p className="text-xs text-gray-500 font-medium">ID: {flowId}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-xs text-gray-500 font-medium">ID: {flowId}</p>
+                            <span className="text-gray-300">|</span>
+                            <button
+                                onClick={() => setSidebarOpen(!isSidebarOpen)}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-medium underline decoration-dotted"
+                            >
+                                {isSidebarOpen ? 'Hide Library' : 'Show Library'}
+                            </button>
+                        </div>
                     </div>
                     {isDirty && (
                         <span className="flex items-center gap-1.5 text-xs text-amber-700 bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1.5 rounded-full border border-amber-300 shadow-sm">
@@ -134,7 +181,12 @@ export function FlowEditorPageClient() {
             <div className="flex-1 flex overflow-hidden">
                 <ReactFlowProvider>
                     {/* Left Sidebar: Node Palette */}
-                    <NodePalette />
+                    <div
+                        className={`transition-all duration-300 ease-in-out overflow-hidden ${isSidebarOpen ? 'w-72 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full'
+                            }`}
+                    >
+                        <NodePalette />
+                    </div>
 
                     {/* Center: Canvas */}
                     <div className="flex-1 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-gray-100 to-slate-200">
