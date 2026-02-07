@@ -262,8 +262,8 @@ function DelayConfig({ node, onUpdate }: any) {
                         </label>
                         <input
                             type="number"
-                            value={node.data.minDelay || 0}
-                            onChange={(e) => onUpdate(node.id, { minDelay: parseInt(e.target.value) || 0 })}
+                            defaultValue={node.data.minDelay || 0}
+                            onBlur={(e) => onUpdate(node.id, { minDelay: parseInt(e.target.value) || 0 })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                             min="0"
                         />
@@ -274,8 +274,8 @@ function DelayConfig({ node, onUpdate }: any) {
                         </label>
                         <input
                             type="number"
-                            value={node.data.maxDelay || 0}
-                            onChange={(e) => onUpdate(node.id, { maxDelay: parseInt(e.target.value) || 0 })}
+                            defaultValue={node.data.maxDelay || 0}
+                            onBlur={(e) => onUpdate(node.id, { maxDelay: parseInt(e.target.value) || 0 })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                             min="0"
                         />
@@ -288,8 +288,8 @@ function DelayConfig({ node, onUpdate }: any) {
                     </label>
                     <input
                         type="number"
-                        value={node.data.delay || 0}
-                        onChange={(e) => onUpdate(node.id, { delay: parseInt(e.target.value) || 0 })}
+                        defaultValue={node.data.delay || 0}
+                        onBlur={(e) => onUpdate(node.id, { delay: parseInt(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         min="0"
                     />

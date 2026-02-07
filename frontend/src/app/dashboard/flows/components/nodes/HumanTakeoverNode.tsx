@@ -1,30 +1,25 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-// import { UserCircle } from 'lucide-react';
+import { User } from 'lucide-react';
 
-export function HumanTakeoverNode({ data, selected }: NodeProps) {
+export function HumanTakeoverNode({ selected }: NodeProps) {
     return (
         <div
             className={`
-        px-4 py-3 rounded-lg border-2 bg-gradient-to-br from-red-50 to-pink-50 shadow-md min-w-[200px]
-        ${selected ? 'border-red-500 ring-2 ring-red-200' : 'border-red-200'}
+        px-3 py-2 rounded-lg border bg-white min-w-[150px]
+        ${selected ? 'border-rose-500 ring-1 ring-rose-200 shadow-sm' : 'border-rose-200'}
       `}
         >
             <Handle
                 type="target"
                 position={Position.Top}
-                className="!bg-gray-400 !w-3 !h-3"
+                className="!bg-gray-400 !w-2.5 !h-2.5 !border-2 !border-white"
             />
-
-            <div className="flex items-center gap-2 mb-2">
-                <span className="text-red-600">👤</span>
-                <span className="font-semibold text-sm text-red-700">Human Takeover</span>
+            <div className="flex items-center gap-2">
+                <div className="p-1 rounded bg-rose-50">
+                    <User className="w-3.5 h-3.5 text-rose-600" />
+                </div>
+                <span className="font-semibold text-xs text-gray-700">Human Takeover</span>
             </div>
-
-            <div className="text-sm text-gray-600 line-clamp-2">
-                {data.message || 'Transferring to agent...'}
-            </div>
-
-            {/* No source handle - this is a terminal node */}
         </div>
     );
 }
