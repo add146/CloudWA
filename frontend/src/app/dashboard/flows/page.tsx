@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Play, Trash2, Edit, Power, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Play, Trash, Edit, AlertCircle } from 'lucide-react';
 
 interface Flow {
     id: string;
