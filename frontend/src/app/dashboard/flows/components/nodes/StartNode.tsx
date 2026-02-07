@@ -1,23 +1,25 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
-// import { Play } from 'lucide-react';
+import { PlayCircle } from 'lucide-react';
 
 export function StartNode({ data, selected }: NodeProps) {
     return (
         <div
             className={`
-        px-4 py-3 rounded-lg border-2 bg-gradient-to-br from-green-50 to-green-100 shadow-md min-w-[150px]
-        ${selected ? 'border-green-500 ring-2 ring-green-200' : 'border-green-300'}
+        px-3 py-2 rounded-lg border bg-white min-w-[140px]
+        ${selected ? 'border-emerald-500 ring-1 ring-emerald-200 shadow-sm' : 'border-emerald-200'}
       `}
         >
             <div className="flex items-center justify-center gap-2">
-                <span className="text-green-600">▶️</span>
-                <span className="font-semibold text-green-700">Start</span>
+                <div className="p-1 rounded bg-emerald-50">
+                    <PlayCircle className="w-4 h-4 text-emerald-600" />
+                </div>
+                <span className="font-semibold text-sm text-gray-700">Start</span>
             </div>
 
             <Handle
                 type="source"
                 position={Position.Bottom}
-                className="!bg-green-500 !w-3 !h-3"
+                className="!bg-emerald-500 !w-2.5 !h-2.5 !border-2 !border-white"
             />
         </div>
     );
