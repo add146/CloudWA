@@ -5,8 +5,7 @@ import auth from '@/routes/auth';
 import devices from '@/routes/devices';
 import flows from '@/routes/flows';
 
-// Export Durable Objects
-export { WhatsAppSession } from '@/durable-objects/WhatsAppSession';
+// Durable Objects removed - using WAHA HTTP API instead
 
 const app = new Hono<HonoContext>();
 
@@ -28,6 +27,7 @@ app.get('/health', (c) => {
         data: {
             status: 'healthy',
             timestamp: new Date().toISOString(),
+            gateway: 'WAHA + Cloud API',
         },
     });
 });
@@ -40,14 +40,53 @@ app.route('/api/auth', auth);
 app.route('/api/devices', devices);
 app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
 
-// Webhook endpoint for Baileys messages
-app.post('/api/webhook/baileys/:deviceId', async (c) => {
+// Webhook endpoint for WAHA messages
+app.post('/api/webhook/waha', async (c) => {
     try {
-        const deviceId = c.req.param('deviceId');
         const payload = await c.req.json();
 
+        // WAHA webhook format
+        const { event, session, payload: data } = payload;
+
+        console.log('WAHA webhook:', { event, session, data });
+
         // TODO: Implement flow execution logic
-        console.log('Baileys webhook:', { deviceId, payload });
+        // 1. Find device by session name (device.id)
+        // 2. Process incoming message
+        // 3. Execute flows
+
+        return c.json({
+            success: true,
+            data: {
+                received: true,
+            },
+        });
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Webhook processing failed',
+        }, 500);
+    }
+});
+
+// Webhook endpoint for WhatsApp Cloud API
+app.post('/api/webhook/cloud-api', async (c) => {
+    try {
+        // Verification for webhook setup
+        const mode = c.req.query('hub.mode');
+        const token = c.req.query('hub.verify_token');
+        const challenge = c.req.query('hub.challenge');
+
+        if (mode === 'subscribe' && token === c.env.WEBHOOK_VERIFY_TOKEN) {
+            return new Response(challenge, { status: 200 });
+        }
+
+        // Process incoming message
+        const payload = await c.req.json();
+
+        console.log('Cloud API webhook:', payload);
+
+        // TODO: Implement flow execution logic
 
         return c.json({
             success: true,

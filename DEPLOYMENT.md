@@ -293,12 +293,10 @@ Copy the hashed password from output.
 
 ### Step 2: Insert Super Admin to D1
 
-Replace:
-- `YOUR_EMAIL@example.com` with your email
-- `$2a$10$HASH_HERE` with your hashed password from Step 1
+Replace `$2a$10$HASH_HERE` with your hashed password from Step 1:
 
 ```bash
-wrangler d1 execute cloudwa-flow-db --remote --command "INSERT INTO super_admins (id, email, password_hash, name, created_at) VALUES (lower(hex(randomblob(16))), 'YOUR_EMAIL@example.com', '$2a$10$HASH_HERE', 'Super Admin', datetime('now'))"
+wrangler d1 execute cloudwa-flow-db --remote --command "INSERT INTO super_admins (id, email, password_hash, name, created_at) VALUES (lower(hex(randomblob(16))), 'glowboxstudio@gmail.com', '$2a$10$HASH_HERE', 'Super Admin', datetime('now'))"
 ```
 
 Expected output:
@@ -314,11 +312,11 @@ wrangler d1 execute cloudwa-flow-db --remote --command "SELECT email, name FROM 
 
 Expected output:
 ```
-┌─────────────────────────┬─────────────┐
-│ email                   │ name        │
-├─────────────────────────┼─────────────┤
-│ YOUR_EMAIL@example.com  │ Super Admin │
-└─────────────────────────┴─────────────┘
+┌──────────────────────────┬─────────────┐
+│ email                    │ name        │
+├──────────────────────────┼─────────────┤
+│ glowboxstudio@gmail.com  │ Super Admin │
+└──────────────────────────┴─────────────┘
 ```
 
 ✅ **Super Admin is ready!**
@@ -348,12 +346,10 @@ Expected response:
 
 ### Step 2: Test Super Admin Login
 
-Replace:
-- `YOUR_SUBDOMAIN` with your subdomain
-- Email and password with your Super Admin credentials
+Replace `YOUR_SUBDOMAIN` with your actual subdomain from deployment:
 
 ```bash
-curl -X POST https://cloudwa-flow.YOUR_SUBDOMAIN.workers.dev/api/auth/super-admin/login -H "Content-Type: application/json" -d "{\"email\":\"YOUR_EMAIL@example.com\",\"password\":\"YourSuperSecretPassword123\"}"
+curl -X POST https://cloudwa-flow.YOUR_SUBDOMAIN.workers.dev/api/auth/super-admin/login -H "Content-Type: application/json" -d "{\"email\":\"glowboxstudio@gmail.com\",\"password\":\"YourSuperSecretPassword123\"}"
 ```
 
 Expected response:
@@ -364,7 +360,7 @@ Expected response:
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
       "id": "...",
-      "email": "YOUR_EMAIL@example.com",
+      "email": "glowboxstudio@gmail.com",
       "name": "Super Admin",
       "role": "super_admin"
     }

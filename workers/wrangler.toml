@@ -3,21 +3,15 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Durable Objects for WhatsApp Sessions
-[durable_objects]
-bindings = [
-  { name = "WHATSAPP_SESSION", class_name = "WhatsAppSession" }
-]
-
-[[migrations]]
-tag = "v1"
-new_classes = ["WhatsAppSession"]
+# WhatsApp Gateway via WAHA HTTP API (deployed separately)
+# WAHA_BASE_URL and WAHA_API_KEY set via wrangler secret
 
 # Database D1
 [[d1_databases]]
 binding = "DB"
 database_name = "cloudwa-flow-db"
-database_id = "" # Will be set after creating D1 database
+database_id = "75b8fc35-c6cb-4994-9938-e1e159c18356"
+migrations_dir = "src/db/migrations"
 
 # Object Storage R2 (for session credentials)
 [[r2_buckets]]
@@ -34,16 +28,16 @@ bucket_name = "cloudwa-media"
 binding = "DOCS_BUCKET"
 bucket_name = "cloudwa-docs"
 
-# Message Queue for Broadcast
-[[queues.producers]]
-binding = "BLAST_QUEUE"
-queue = "broadcast-queue"
-
-[[queues.consumers]]
-queue = "broadcast-queue"
-max_batch_size = 10
-max_batch_timeout = 5
-max_concurrency = 5
+# Message Queue for Broadcast (optional - can be added later)
+# [[queues.producers]]
+# binding = "BLAST_QUEUE"
+# queue = "broadcast-queue"
+# 
+# [[queues.consumers]]
+# queue = "broadcast-queue"
+# max_batch_size = 10
+# max_batch_timeout = 5
+# max_concurrency = 5
 
 # Vector Database for RAG
 [[vectorize]]

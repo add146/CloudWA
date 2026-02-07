@@ -1,33 +1,35 @@
-import type { D1Database } from '@cloudflare/workers-types';
-import type { DurableObjectNamespace } from '@cloudflare/workers-types';
-import type { R2Bucket } from '@cloudflare/workers-types';
-import type { Queue } from '@cloudflare/workers-types';
-import type { VectorizeIndex } from '@cloudflare/workers-types';
-import type { Ai } from '@cloudflare/workers-types';
+import type { D1Database, R2Bucket, Queue, Vectorize, Ai, DurableObjectNamespace } from '@cloudflare/workers-types';
+import type { Context } from 'hono';
 
 export interface Env {
-    // D1 Database
+    // Database
     DB: D1Database;
 
-    // R2 Buckets
+    // Storage
     SESSION_BUCKET: R2Bucket;
     MEDIA_BUCKET: R2Bucket;
     DOCS_BUCKET: R2Bucket;
 
-    // Durable Objects
-    WHATSAPP_SESSION: DurableObjectNamespace;
+    // Queues (optional - can be added later)
+    // BLAST_QUEUE: Queue;
 
-    // Queues
-    BLAST_QUEUE: Queue;
-
-    // Vectorize
-    VECTOR_INDEX: VectorizeIndex;
-
-    // Workers AI
+    // AI
+    VECTOR_INDEX: Vectorize;
     AI: Ai;
 
-    // Environment Variables
+    // Secrets
     JWT_SECRET: string;
+
+    // WhatsApp Gateway Configuration
+    WAHA_BASE_URL?: string; // e.g., https://waha.railway.app
+    WAHA_API_KEY?: string;
+
+    // WhatsApp Cloud API (optional)
+    WA_PHONE_NUMBER_ID?: string;
+    WA_ACCESS_TOKEN?: string;
+
+    // Webhook verification
+    WEBHOOK_VERIFY_TOKEN?: string;
 }
 
 export interface UserPayload {
@@ -43,3 +45,5 @@ export interface HonoContext {
         user: UserPayload;
     };
 }
+
+export type AppContext = Context<HonoContext>;
