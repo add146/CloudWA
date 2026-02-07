@@ -170,12 +170,23 @@ export default function CampaignsPage() {
                         <form className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Name</label>
-                                <input type="text" className="w-full border rounded-lg px-3 py-2" placeholder="Promo Jan 2026" />
+                                <input
+                                    type="text"
+                                    className="w-full border rounded-lg px-3 py-2"
+                                    placeholder="Promo Jan 2026"
+                                    value={newCampaign.name}
+                                    onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
+                                />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Select Device</label>
-                                <select className="w-full border rounded-lg px-3 py-2">
+                                <select
+                                    className="w-full border rounded-lg px-3 py-2"
+                                    value={newCampaign.deviceId}
+                                    onChange={(e) => setNewCampaign({ ...newCampaign, deviceId: e.target.value })}
+                                >
+                                    <option value="">Select a device...</option>
                                     {devices.map(d => (
                                         <option key={d.id} value={d.id}>{d.displayName || d.phoneNumber}</option>
                                     ))}
@@ -184,7 +195,13 @@ export default function CampaignsPage() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                                <textarea className="w-full border rounded-lg px-3 py-2 h-32" placeholder="Hello {{name}}, check out our new promo!"></textarea>
+                                <textarea
+                                    className="w-full border rounded-lg px-3 py-2 h-32"
+                                    placeholder="Hello {{name}}, check out our new promo!"
+                                    value={newCampaign.message}
+                                    onChange={(e) => setNewCampaign({ ...newCampaign, message: e.target.value })}
+                                ></textarea>
+                                <p className="text-xs text-gray-500 mt-1">Available variables: {'{{name}}'}</p>
                             </div>
 
                             <div className="flex gap-3 mt-6">
@@ -197,10 +214,33 @@ export default function CampaignsPage() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => alert('Broadcasting is not fully enabled in this demo yet.')}
+                                    onClick={async () => {
+                                        if (!newCampaign.name || !newCampaign.deviceId || !newCampaign.message) {
+                                            alert('Please fill all fields');
+                                            return;
+                                        }
+
+                                        try {
+                                            const response = await fetch(`${API_URL}/api/campaigns`, {
+                                                method: 'POST',
+                                                headers: getAuthHeaders(),
+                                                body: JSON.stringify(newCampaign)
+                                            });
+                                            const data = await response.json();
+                                            if (data.success) {
+                                                setShowCreateModal(false);
+                                                loadCampaigns();
+                                                alert('Campaign started successfully!');
+                                            } else {
+                                                alert('Failed: ' + data.error);
+                                            }
+                                        } catch (e) {
+                                            alert('Error creating campaign');
+                                        }
+                                    }}
                                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                 >
-                                    Create Campaign
+                                    Start Broadcast
                                 </button>
                             </div>
                         </form>
