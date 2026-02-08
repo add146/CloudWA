@@ -57,6 +57,20 @@ devicesRouter.post('/', async (c) => {
 
         const db = drizzle(c.env.DB);
 
+        // Check max 1 device limit per tenant (WAHA free tier)
+        const existingDevices = await db
+            .select()
+            .from(devices)
+            .where(eq(devices.tenantId, user.tenantId))
+            .limit(1);
+
+        if (existingDevices.length > 0) {
+            return c.json({
+                success: false,
+                error: 'Maximum 1 device per tenant. Please delete existing device first.'
+            }, 400);
+        }
+
         // Create device in database
         const [device] = await db
             .insert(devices)
@@ -67,6 +81,7 @@ devicesRouter.post('/', async (c) => {
                 sessionStatus: 'disconnected',
             })
             .returning();
+
 
         // If WAHA gateway, start session and get QR
         if (gatewayType === 'waha') {
@@ -177,48 +192,63 @@ devicesRouter.get('/:id', async (c) => {
             }, 404);
         }
 
-        // Get real-time status from WAHA
-        if (device.gatewayType === 'waha' && c.env.WAHA_BASE_URL && c.env.WAHA_API_KEY) {
-            const waha = new WAHAClient({
-                baseUrl: c.env.WAHA_BASE_URL,
-                apiKey: c.env.WAHA_API_KEY,
-            });
+        // Get real-time status from WAHA using tenant settings
+        if (device.gatewayType === 'waha') {
+            // Fetch tenant WAHA config
+            const [tenant] = await db
+                .select()
+                .from(tenants)
+                .where(eq(tenants.id, user.tenantId))
+                .limit(1);
 
-            try {
-                const status = await waha.getSessionStatus(device.id);
+            const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+            const wahaConfig = settings.waha || {};
+            const wahaBaseUrl = wahaConfig.baseUrl || c.env.WAHA_BASE_URL;
+            const wahaApiKey = wahaConfig.apiKey || c.env.WAHA_API_KEY;
 
-                // Try to get QR if scanning
-                let qrCode;
-                if (status.status === 'SCAN_QR_CODE') {
-                    try {
-                        const qr = await waha.getQRCode(device.id);
-                        qrCode = `data:${qr.mimetype};base64,${qr.data}`;
-                    } catch (e) { }
-                }
-
-                return c.json({
-                    success: true,
-                    data: {
-                        id: device.id,
-                        phoneNumber: device.phoneNumber,
-                        displayName: device.displayName,
-                        gatewayType: device.gatewayType,
-                        sessionStatus: status.status.toLowerCase(),
-                        qrCode,
-                        antiBanConfig: JSON.parse(device.antiBanConfig || '{}'),
-                        aiFallback: {
-                            enabled: device.aiFallbackEnabled,
-                            knowledgeBaseIds: JSON.parse(device.aiFallbackKbIds || '[]'),
-                            prompt: device.aiFallbackPrompt,
-                        },
-                        connectedAt: device.connectedAt,
-                        createdAt: device.createdAt,
-                    },
+            if (wahaBaseUrl && wahaApiKey) {
+                const waha = new WAHAClient({
+                    baseUrl: wahaBaseUrl,
+                    apiKey: wahaApiKey,
                 });
-            } catch (error) {
-                // WAHA not available, return DB status
+
+                try {
+                    const status = await waha.getSessionStatus(device.id);
+
+                    // Try to get QR if scanning
+                    let qrCode;
+                    if (status.status === 'SCAN_QR_CODE') {
+                        try {
+                            const qr = await waha.getQRCode(device.id);
+                            qrCode = `data:${qr.mimetype};base64,${qr.data}`;
+                        } catch (e) { }
+                    }
+
+                    return c.json({
+                        success: true,
+                        data: {
+                            id: device.id,
+                            phoneNumber: device.phoneNumber,
+                            displayName: device.displayName,
+                            gatewayType: device.gatewayType,
+                            sessionStatus: status.status.toLowerCase(),
+                            qrCode,
+                            antiBanConfig: JSON.parse(device.antiBanConfig || '{}'),
+                            aiFallback: {
+                                enabled: device.aiFallbackEnabled,
+                                knowledgeBaseIds: JSON.parse(device.aiFallbackKbIds || '[]'),
+                                prompt: device.aiFallbackPrompt,
+                            },
+                            connectedAt: device.connectedAt,
+                            createdAt: device.createdAt,
+                        },
+                    });
+                } catch (error) {
+                    // WAHA not available, return DB status
+                }
             }
         }
+
 
         // Fallback to database info
         return c.json({
@@ -275,11 +305,30 @@ devicesRouter.post('/:id/send', async (c) => {
             }, 400);
         }
 
-        // Send via WAHA
-        if (device.gatewayType === 'waha' && c.env.WAHA_BASE_URL && c.env.WAHA_API_KEY) {
+        // Send via WAHA using tenant settings
+        if (device.gatewayType === 'waha') {
+            // Fetch tenant WAHA config
+            const [tenant] = await db
+                .select()
+                .from(tenants)
+                .where(eq(tenants.id, user.tenantId))
+                .limit(1);
+
+            const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+            const wahaConfig = settings.waha || {};
+            const wahaBaseUrl = wahaConfig.baseUrl || c.env.WAHA_BASE_URL;
+            const wahaApiKey = wahaConfig.apiKey || c.env.WAHA_API_KEY;
+
+            if (!wahaBaseUrl || !wahaApiKey) {
+                return c.json({
+                    success: false,
+                    error: 'WAHA not configured. Please configure in Settings.'
+                }, 400);
+            }
+
             const waha = new WAHAClient({
-                baseUrl: c.env.WAHA_BASE_URL,
-                apiKey: c.env.WAHA_API_KEY,
+                baseUrl: wahaBaseUrl,
+                apiKey: wahaApiKey,
             });
 
             const result = await waha.sendMessage({
@@ -297,6 +346,7 @@ devicesRouter.post('/:id/send', async (c) => {
                 },
             });
         }
+
 
         // Send via Cloud API
         if (device.gatewayType === 'cloudapi') {
@@ -365,19 +415,33 @@ devicesRouter.delete('/:id', async (c) => {
             }, 404);
         }
 
-        // Stop WAHA session
-        if (device.gatewayType === 'waha' && c.env.WAHA_BASE_URL && c.env.WAHA_API_KEY) {
-            const waha = new WAHAClient({
-                baseUrl: c.env.WAHA_BASE_URL,
-                apiKey: c.env.WAHA_API_KEY,
-            });
+        // Stop WAHA session using tenant settings
+        if (device.gatewayType === 'waha') {
+            const [tenant] = await db
+                .select()
+                .from(tenants)
+                .where(eq(tenants.id, user.tenantId))
+                .limit(1);
 
-            try {
-                await waha.deleteSession(device.id);
-            } catch (error) {
-                console.error('Failed to delete WAHA session:', error);
+            const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+            const wahaConfig = settings.waha || {};
+            const wahaBaseUrl = wahaConfig.baseUrl || c.env.WAHA_BASE_URL;
+            const wahaApiKey = wahaConfig.apiKey || c.env.WAHA_API_KEY;
+
+            if (wahaBaseUrl && wahaApiKey) {
+                const waha = new WAHAClient({
+                    baseUrl: wahaBaseUrl,
+                    apiKey: wahaApiKey,
+                });
+
+                try {
+                    await waha.deleteSession(device.id);
+                } catch (error) {
+                    console.error('Failed to delete WAHA session:', error);
+                }
             }
         }
+
 
         // Delete from database
         await db

@@ -5,10 +5,11 @@
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
 import type { Env } from '@/types/env';
-import { flows, flowSessions, devices } from '@/db/schema';
+import { flows, flowSessions, devices, tenants } from '@/db/schema';
 import { FlowExecutor, type FlowGraph, type FlowSession } from './flow-executor';
 import { WAHAClient } from '@/gateway/waha-client';
 import { CloudAPIClient } from '@/gateway/cloud-api-client';
+
 
 export async function triggerFlow(
     env: Env,
@@ -238,10 +239,26 @@ async function sendMessage(
     // Format chatId
     const chatId = contactPhone.includes('@') ? contactPhone : `${contactPhone}@c.us`;
 
-    if (device.gatewayType === 'waha' && env.WAHA_BASE_URL && env.WAHA_API_KEY) {
+    if (device.gatewayType === 'waha') {
+        // Fetch tenant WAHA config
+        const [tenant] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, device.tenantId))
+            .limit(1);
+
+        const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+        const wahaConfig = settings.waha || {};
+        const wahaBaseUrl = wahaConfig.baseUrl || env.WAHA_BASE_URL;
+        const wahaApiKey = wahaConfig.apiKey || env.WAHA_API_KEY;
+
+        if (!wahaBaseUrl || !wahaApiKey) {
+            throw new Error('WAHA not configured for this tenant');
+        }
+
         const waha = new WAHAClient({
-            baseUrl: env.WAHA_BASE_URL,
-            apiKey: env.WAHA_API_KEY,
+            baseUrl: wahaBaseUrl,
+            apiKey: wahaApiKey,
         });
 
         if (message.type === 'text') {

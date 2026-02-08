@@ -11,17 +11,30 @@ interface Settings {
     };
 }
 
+// Get API URL from env or fallback to production backend
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
+
 export default function SettingsPage() {
     const [settings, setSettings] = useState<Settings>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    };
+
     // Fetch settings on load
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await fetch('/api/settings');
+                const res = await fetch(`${API_URL}/api/settings`, {
+                    headers: getAuthHeaders()
+                });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success) {
@@ -54,11 +67,9 @@ export default function SettingsPage() {
         setMessage(null);
 
         try {
-            const res = await fetch('/api/settings', {
+            const res = await fetch(`${API_URL}/api/settings`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(settings),
             });
 
@@ -75,6 +86,7 @@ export default function SettingsPage() {
             setSaving(false);
         }
     };
+
 
     if (loading) {
         return (
