@@ -1,5 +1,33 @@
-# CloudWA Progress Update - February 7, 2026
+# CloudWA Development Progress
 
+## Latest Updates
+
+### Flow Editor UI/UX Improvements (Feb 2026)
+
+#### Node Design Overhaul
+- **Flat Minimalist Design**: Migrated all canvas nodes from gradient-based design to clean, flat design
+- **Icon Update**: Replaced emoji icons with professional Lucide React icons
+- **Nodes Updated**: Start, Message, Button, Condition, AI, Delay, Human Takeover, List
+
+#### Random Delay Feature
+- Added "Random Delay" option to Delay node
+- Users can set min/max range (e.g., 2-10 seconds)
+- Backend logic implemented to calculate random delay within range
+- UI shows delay range when random is enabled
+
+#### Handle Orientation Change
+- Changed node connection points from vertical (top-bottom) to horizontal (left-right)
+- All flows now connect left-to-right for better visualization
+- Improves canvas readability and flow design experience
+
+#### Performance Optimizations
+- Fixed input lag in delay configuration by using uncontrolled inputs
+- Added local state for immediate UI feedback on checkbox toggles
+- Optimized re-render performance
+
+---
+
+## Core Features
 ## Phase 2: Backend Core - ✅ COMPLETE
 
 **Deployment**: https://cloudwa-flow.khibroh.workers.dev  
