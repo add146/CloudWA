@@ -42,46 +42,72 @@ export class WAHAClient {
      * Start a new WhatsApp session (get QR code)
      */
     async startSession(sessionName: string, webhookUrl?: string): Promise<WAHASession> {
-        const response = await fetch(`${this.config.baseUrl}/api/sessions/${sessionName}/start`, {
+        // WAHA API: POST /api/sessions/start with name in body
+        const response = await fetch(`${this.config.baseUrl}/api/sessions/start`, {
             method: 'POST',
             headers: {
                 'X-Api-Key': this.config.apiKey,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                webhooks: webhookUrl ? [{
-                    url: webhookUrl,
-                    events: ['message', 'session.status'],
-                }] : undefined,
+                name: sessionName,
+                config: webhookUrl ? {
+                    webhooks: [{
+                        url: webhookUrl,
+                        events: ['message', 'session.status'],
+                    }]
+                } : undefined,
             }),
         });
 
         if (!response.ok) {
-            throw new Error(`WAHA API error: ${response.statusText}`);
+            const errorBody = await response.text();
+            console.error('WAHA API Error:', response.status, errorBody);
+            throw new Error(`WAHA API error: ${response.statusText} - ${errorBody}`);
         }
 
         return await response.json();
     }
 
+
+
     /**
      * Get QR code for scanning
+     * WAHA returns QR in format: { mimetype: 'image/png', data: 'base64...' }
      */
     async getQRCode(sessionName: string): Promise<WAHAQRCode> {
         const response = await fetch(
-            `${this.config.baseUrl}/api/sessions/${sessionName}/qr`,
+            `${this.config.baseUrl}/api/${sessionName}/auth/qr`,
             {
                 headers: {
                     'X-Api-Key': this.config.apiKey,
+                    'Accept': 'application/json',
                 },
             }
         );
 
         if (!response.ok) {
-            throw new Error(`WAHA API error: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('WAHA QR Error:', response.status, errorText);
+            throw new Error(`WAHA QR error: ${response.statusText} - ${errorText}`);
         }
 
-        return await response.json();
+        const data = await response.json() as { value?: string; data?: string; mimetype?: string };
+        console.log('QR Response:', JSON.stringify(data).substring(0, 200));
+
+        // Handle different response formats
+        if (data.value) {
+            // Format: { value: "base64..." }
+            return { mimetype: 'image/png', data: data.value };
+        } else if (data.data) {
+            // Format: { mimetype: "...", data: "base64..." }
+            return { mimetype: data.mimetype || 'image/png', data: data.data };
+        }
+
+
+        throw new Error('Unexpected QR response format');
     }
+
 
     /**
      * Get session status

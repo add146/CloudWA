@@ -262,12 +262,14 @@ async function sendMessage(
         });
 
         if (message.type === 'text') {
+            // WAHA Core (free) only supports 'default' session name
             await waha.sendMessage({
-                session: deviceId,
+                session: 'default',
                 chatId,
                 text: message.content,
             });
         }
+
         // TODO: Handle button and list messages
     } else if (device.gatewayType === 'cloudapi') {
         const config = JSON.parse(device.cloudApiConfig || '{}');

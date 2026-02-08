@@ -105,13 +105,25 @@ devicesRouter.post('/', async (c) => {
                     apiKey: wahaApiKey,
                 });
 
+                // WAHA Core (free) only supports 'default' session name
+                const wahaSessionName = 'default';
+
                 // Start session with webhook pointing back to our Workers
                 const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha`;
-                await waha.startSession(device.id, webhookUrl);
 
-                // Get QR code
                 try {
-                    const qr = await waha.getQRCode(device.id);
+                    await waha.startSession(wahaSessionName, webhookUrl);
+                } catch (startError: any) {
+                    // If session already exists, that's OK - continue to get QR
+                    console.log('Start session result:', startError.message);
+                }
+
+                // Give WAHA a moment to generate QR
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Try to get QR code
+                try {
+                    const qr = await waha.getQRCode(wahaSessionName);
 
                     // Update status
                     await db
@@ -128,7 +140,7 @@ devicesRouter.post('/', async (c) => {
                             qrCode: `data:${qr.mimetype};base64,${qr.data}`,
                         },
                     });
-                } catch (error) {
+                } catch (qrError: any) {
                     // QR not ready yet, return pending status
                     return c.json({
                         success: true,
@@ -136,10 +148,12 @@ devicesRouter.post('/', async (c) => {
                             id: device.id,
                             displayName: device.displayName,
                             sessionStatus: 'starting',
-                            message: 'Session starting, QR code will be available soon',
+                            message: 'Session starting, please refresh to get QR code',
                         },
                     });
                 }
+
+
             } else {
                 return c.json({
                     success: false,
@@ -212,14 +226,17 @@ devicesRouter.get('/:id', async (c) => {
                     apiKey: wahaApiKey,
                 });
 
+                // WAHA Core (free) only supports 'default' session name
+                const wahaSessionName = 'default';
+
                 try {
-                    const status = await waha.getSessionStatus(device.id);
+                    const status = await waha.getSessionStatus(wahaSessionName);
 
                     // Try to get QR if scanning
                     let qrCode;
                     if (status.status === 'SCAN_QR_CODE') {
                         try {
-                            const qr = await waha.getQRCode(device.id);
+                            const qr = await waha.getQRCode(wahaSessionName);
                             qrCode = `data:${qr.mimetype};base64,${qr.data}`;
                         } catch (e) { }
                     }
@@ -248,6 +265,7 @@ devicesRouter.get('/:id', async (c) => {
                 }
             }
         }
+
 
 
         // Fallback to database info
@@ -331,8 +349,9 @@ devicesRouter.post('/:id/send', async (c) => {
                 apiKey: wahaApiKey,
             });
 
+            // WAHA Core (free) only supports 'default' session name
             const result = await waha.sendMessage({
-                session: device.id,
+                session: 'default',
                 chatId,
                 text: message,
             });
@@ -435,7 +454,8 @@ devicesRouter.delete('/:id', async (c) => {
                 });
 
                 try {
-                    await waha.deleteSession(device.id);
+                    // WAHA Core (free) only supports 'default' session name
+                    await waha.deleteSession('default');
                 } catch (error) {
                     console.error('Failed to delete WAHA session:', error);
                 }

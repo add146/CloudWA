@@ -95,7 +95,9 @@ export default function DevicesPage() {
                         setQrCode(data.data.qrCode);
                     }
 
-                    if (data.data.sessionStatus === 'connected') {
+                    // WAHA uses 'working' when connected, also check 'connected'
+                    const status = data.data.sessionStatus?.toLowerCase();
+                    if (status === 'connected' || status === 'working') {
                         clearInterval(interval);
                         setShowAddModal(false);
                         setQrCode(null);
