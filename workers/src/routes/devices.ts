@@ -165,9 +165,21 @@ devicesRouter.post('/', async (c) => {
                 const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha`;
 
                 try {
+                    // First, try to stop/delete any existing session to ensure fresh start with new config
+                    try {
+                        await waha.stopSession(wahaSessionName);
+                        console.log('Stopped existing session');
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
+                    } catch (stopError: any) {
+                        // Session might not exist, that's OK
+                        console.log('No existing session to stop:', stopError.message);
+                    }
+
+                    // Now start fresh session with store.enabled = true config
                     await waha.startSession(wahaSessionName, webhookUrl);
+                    console.log('Started new session with store enabled');
                 } catch (startError: any) {
-                    // If session already exists, that's OK - continue to get QR
+                    // If session already exists and won't stop, that's OK - continue to get QR
                     console.log('Start session result:', startError.message);
                 }
 

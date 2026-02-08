@@ -59,7 +59,26 @@ export default function ChatPage() {
 
     useEffect(() => {
         loadChats();
+
+        // Auto-refresh chat list every 10 seconds
+        const chatInterval = setInterval(() => {
+            loadChats();
+        }, 10000);
+
+        return () => clearInterval(chatInterval);
     }, []);
+
+    // Auto-refresh messages when a chat is selected
+    useEffect(() => {
+        if (!selectedChat) return;
+
+        // Refresh messages every 5 seconds for the active conversation
+        const messageInterval = setInterval(() => {
+            loadMessages(selectedChat.id);
+        }, 5000);
+
+        return () => clearInterval(messageInterval);
+    }, [selectedChat?.id]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -218,8 +237,8 @@ export default function ChatPage() {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${activeTab === tab
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-600 hover:bg-gray-100'
                                 }`}
                         >
                             {tab}
@@ -314,8 +333,8 @@ export default function ChatPage() {
                             <button
                                 key={page}
                                 className={`w-7 h-7 text-xs rounded-full ${page === 1
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 {page}
@@ -388,8 +407,8 @@ export default function ChatPage() {
                                     >
                                         <div
                                             className={`max-w-[70%] rounded-2xl px-4 py-2 ${msg.fromMe
-                                                    ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-br-sm'
-                                                    : 'bg-white shadow-sm rounded-bl-sm'
+                                                ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-br-sm'
+                                                : 'bg-white shadow-sm rounded-bl-sm'
                                                 }`}
                                         >
                                             <p className="text-sm whitespace-pre-wrap">{msg.body}</p>

@@ -54,7 +54,9 @@ chatsRouter.get('/', async (c) => {
             }, 400);
         }
 
+        console.log('Fetching chats from WAHA:', wahaClient.sessionName);
         const chats = await wahaClient.waha.getChatsOverview(wahaClient.sessionName, limit, offset);
+        console.log('Got chats:', chats?.length || 0);
 
         return c.json({
             success: true,
@@ -74,9 +76,11 @@ chatsRouter.get('/', async (c) => {
         });
     } catch (error: any) {
         console.error('Error fetching chats:', error);
+        // Return more detailed error for debugging
         return c.json({
             success: false,
-            error: error.message || 'Failed to fetch chats'
+            error: error.message || 'Failed to fetch chats',
+            details: error.toString()
         }, 500);
     }
 });

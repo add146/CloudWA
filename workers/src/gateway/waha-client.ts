@@ -87,12 +87,22 @@ export class WAHAClient {
             },
             body: JSON.stringify({
                 name: sessionName,
-                config: webhookUrl ? {
-                    webhooks: [{
-                        url: webhookUrl,
-                        events: ['message', 'session.status'],
-                    }]
-                } : undefined,
+                config: {
+                    // Enable store for chat history (required for /chats endpoint in NOWEB engine)
+                    // Path must be noweb.store.enabled for NOWEB engine!
+                    noweb: {
+                        store: {
+                            enabled: true,
+                            fullSync: true, // Required for full chat history
+                        }
+                    },
+                    ...(webhookUrl ? {
+                        webhooks: [{
+                            url: webhookUrl,
+                            events: ['message', 'session.status'],
+                        }]
+                    } : {}),
+                },
             }),
         });
 
@@ -322,24 +332,43 @@ export class WAHAClient {
 
     /**
      * Get chats overview (list of chats with last message)
+     * Note: Uses /chats endpoint as /chats/overview is WAHA Plus only
      */
     async getChatsOverview(sessionName: string, limit = 50, offset = 0): Promise<WAHAChatOverview[]> {
-        const response = await fetch(
-            `${this.config.baseUrl}/api/${sessionName}/chats/overview?limit=${limit}&offset=${offset}`,
-            {
-                headers: {
-                    'X-Api-Key': this.config.apiKey,
-                },
-            }
-        );
+        // Try simpler endpoint without sort params that may not be supported
+        const url = `${this.config.baseUrl}/api/${sessionName}/chats?limit=${limit}&offset=${offset}`;
+        console.log('WAHA getChats URL:', url);
+
+        const response = await fetch(url, {
+            headers: {
+                'X-Api-Key': this.config.apiKey,
+            },
+        });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('WAHA Chats Overview Error:', response.status, errorText);
-            throw new Error(`WAHA API error: ${response.statusText}`);
+            console.error('WAHA Chats Error:', response.status, errorText);
+            // Include actual error details
+            throw new Error(`WAHA API error: ${response.statusText} - ${errorText}`);
         }
 
-        return await response.json();
+        const chats: any[] = await response.json();
+
+        // Transform basic chat response to match our expected format
+        return (chats || []).map((chat: any) => ({
+            id: chat.id,
+            name: chat.name || chat.id?.split('@')[0] || 'Unknown',
+            picture: chat.picture || null,
+            lastMessage: chat.lastMessage ? {
+                id: chat.lastMessage.id || '',
+                timestamp: chat.lastMessage.timestamp || 0,
+                from: chat.lastMessage.from || '',
+                fromMe: chat.lastMessage.fromMe || false,
+                body: chat.lastMessage.body || '',
+                hasMedia: chat.lastMessage.hasMedia || false,
+            } : undefined,
+            unreadCount: chat.unreadCount || 0,
+        }));
     }
 
     /**
