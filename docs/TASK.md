@@ -113,8 +113,8 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
     - [x] Generate DB migration
     - [x] Apply migration to D1 (`npm run db:migrate:prod`)
     - [x] Verify Schema Update
-- [/] Verify Core Features
-  - [ ] Device Connection (QR Code) - Waiting for User Integration
+- [x] Verify Core Features
+  - [x] Device Connection (QR Code) - ✅ Fixed & Verified
   - [ ] Broadcast Campaign Sending
   - [x] Flow Editor & Execution (Fixed)
 - [ ] Tenant management
@@ -195,7 +195,7 @@ Checklist pengembangan untuk CloudWA Flow WhatsApp SaaS.
 | Flow Editor Refinement | ✅ Completed | - |
 | Sidebar Navigation Icons | ✅ Completed | - |
 | Backend Direct Flow Access | ✅ Completed | - |
-| Device Connection (QR) | ⏳ Pending | - |
+| Device Connection (QR) | ✅ Completed | - |
 
 ---
 

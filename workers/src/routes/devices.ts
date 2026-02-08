@@ -26,6 +26,59 @@ devicesRouter.get('/', async (c) => {
             .from(devices)
             .where(eq(devices.tenantId, user.tenantId));
 
+        // For WAHA devices, sync status from WAHA
+        const [tenant] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, user.tenantId))
+            .limit(1);
+
+        const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+        const wahaConfig = settings.waha || {};
+        const wahaBaseUrl = wahaConfig.baseUrl || c.env.WAHA_BASE_URL;
+        const wahaApiKey = wahaConfig.apiKey || c.env.WAHA_API_KEY;
+
+        let wahaStatus: string | null = null;
+        let wahaPhoneNumber: string | null = null;
+        if (wahaBaseUrl && wahaApiKey) {
+            try {
+                const waha = new WAHAClient({ baseUrl: wahaBaseUrl, apiKey: wahaApiKey });
+                const session = await waha.getSessionStatus('default');
+                wahaStatus = session.status.toLowerCase();
+
+                // Extract phone number from session.me.id (format: "6285232364446@c.us")
+                if (session.me?.id) {
+                    wahaPhoneNumber = session.me.id.replace('@c.us', '');
+                }
+
+                // If WAHA is WORKING, update any device that's still scanning or missing phone
+                if (session.status === 'WORKING') {
+                    for (const device of deviceList) {
+                        if (device.gatewayType === 'waha') {
+                            const needsUpdate = device.sessionStatus !== 'connected' ||
+                                (wahaPhoneNumber && !device.phoneNumber);
+
+                            if (needsUpdate) {
+                                await db
+                                    .update(devices)
+                                    .set({
+                                        sessionStatus: 'connected',
+                                        phoneNumber: wahaPhoneNumber || device.phoneNumber,
+                                        connectedAt: device.connectedAt || new Date().toISOString()
+                                    })
+                                    .where(eq(devices.id, device.id));
+                                device.sessionStatus = 'connected';
+                                if (wahaPhoneNumber) device.phoneNumber = wahaPhoneNumber;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // WAHA not available
+            }
+        }
+
+
         return c.json({
             success: true,
             data: deviceList.map(d => ({
@@ -33,7 +86,7 @@ devicesRouter.get('/', async (c) => {
                 phoneNumber: d.phoneNumber,
                 displayName: d.displayName,
                 gatewayType: d.gatewayType,
-                sessionStatus: d.sessionStatus,
+                sessionStatus: d.gatewayType === 'waha' && wahaStatus === 'working' ? 'connected' : d.sessionStatus,
                 connectedAt: d.connectedAt,
                 createdAt: d.createdAt,
             })),
@@ -232,6 +285,21 @@ devicesRouter.get('/:id', async (c) => {
                 try {
                     const status = await waha.getSessionStatus(wahaSessionName);
 
+                    // Sync status to database if changed
+                    const wahaStatus = status.status.toLowerCase();
+                    let dbStatus = device.sessionStatus;
+
+                    if (status.status === 'WORKING' && device.sessionStatus !== 'connected') {
+                        dbStatus = 'connected';
+                        await db
+                            .update(devices)
+                            .set({
+                                sessionStatus: 'connected',
+                                connectedAt: new Date().toISOString()
+                            })
+                            .where(eq(devices.id, device.id));
+                    }
+
                     // Try to get QR if scanning
                     let qrCode;
                     if (status.status === 'SCAN_QR_CODE') {
@@ -248,7 +316,7 @@ devicesRouter.get('/:id', async (c) => {
                             phoneNumber: device.phoneNumber,
                             displayName: device.displayName,
                             gatewayType: device.gatewayType,
-                            sessionStatus: status.status.toLowerCase(),
+                            sessionStatus: wahaStatus === 'working' ? 'connected' : wahaStatus,
                             qrCode,
                             antiBanConfig: JSON.parse(device.antiBanConfig || '{}'),
                             aiFallback: {
@@ -260,6 +328,7 @@ devicesRouter.get('/:id', async (c) => {
                             createdAt: device.createdAt,
                         },
                     });
+
                 } catch (error) {
                     // WAHA not available, return DB status
                 }

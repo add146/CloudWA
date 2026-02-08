@@ -16,6 +16,10 @@ export interface WAHAConfig {
 export interface WAHASession {
     name: string; // Same as device.id
     status: 'STOPPED' | 'STARTING' | 'SCAN_QR_CODE' | 'WORKING' | 'FAILED';
+    me?: {
+        id: string; // e.g. "6285232364446@c.us"
+        pushName?: string;
+    };
     config?: {
         webhooks?: {
             url: string;

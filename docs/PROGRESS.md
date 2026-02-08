@@ -45,6 +45,13 @@
   - Added editable Flow Name in header.
   - Fixed Sidebar navigation icons with proper emojis.
 
+### 11.3 WAHA Device Connection Fix ✅
+- **Session Name Compatibility**: Updated all WAHA Client calls to use session name `'default'` instead of `device.id`, as WAHA Core (free tier) only supports a single session named `'default'`.
+- **API Endpoint Correction**: Fixed `startSession` endpoint from `/api/sessions/{name}/start` to `/api/sessions/start` (with name in body) and `getQRCode` to `/api/{name}/auth/qr` per WAHA API documentation.
+- **Status Sync**: Implemented bilateral status sync. Backend now checks WAHA status (`WORKING` vs `SCAN_QR_CODE`) when listing devices and updates the local database accordingly.
+- **Phone Number Sync**: Added logic to extract connected phone number from WAHA session data (`session.me.id`) and save it to the database, ensuring the UI shows the correct WhatsApp number.
+- **Error Handling**: Improved error handling in `startSession` to prevent Timeouts/Hanging when WAHA is slow to respond, adding a polling mechanism for QR code retrieval.
+
 ### 11.1 Project Initialization ✅
 
 ### 11.1 Project Initialization ✅
