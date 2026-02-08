@@ -6,6 +6,11 @@ import devices from '@/routes/devices';
 import settings from '@/routes/settings';
 import flows from '@/routes/flows';
 import ai from '@/routes/ai';
+import aiSettings from '@/routes/ai-settings';
+import media from '@/routes/media';
+import chats from '@/routes/chats';
+
+import superAdmin from '@/routes/super-admin';
 
 // Durable Objects removed - using WAHA HTTP API instead
 
@@ -43,6 +48,10 @@ app.route('/api/devices', devices);
 app.route('/api/settings', settings); // Tenant settings
 app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
 app.route('/api', ai); // AI routes under /api/knowledge-base
+app.route('/api/settings/ai', aiSettings); // AI Settings
+app.route('/api/super-admin', superAdmin); // Super Admin Routes
+app.route('/api/media', media); // Media Routes
+app.route('/api/chats', chats); // Chat Routes
 
 // Webhook endpoint for WAHA messages
 app.post('/api/webhook/waha', async (c) => {

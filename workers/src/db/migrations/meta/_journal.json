@@ -15,6 +15,13 @@
       "when": 1770449480773,
       "tag": "0001_legal_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1770522569156,
+      "tag": "0002_wise_tag",
+      "breakpoints": true
     }
   ]
 }

@@ -15,12 +15,12 @@ export default function SuperAdminLayout({
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
 
-    // Skip layout for login page
-    if (pathname === '/super-admin/login') {
-        return <>{children}</>;
-    }
+    // Check for login page
+    const isLoginPage = pathname === '/super-admin/login';
 
     useEffect(() => {
+        if (isLoginPage) return;
+
         // Check auth
         const token = localStorage.getItem('super_admin_token');
         if (!token) {
@@ -47,6 +47,10 @@ export default function SuperAdminLayout({
         { name: 'Plans', href: '/super-admin/plans', icon: '💾' },
         { name: 'Settings', href: '/super-admin/settings', icon: '⚙️' },
     ];
+
+    if (isLoginPage) {
+        return <>{children}</>;
+    }
 
     return (
         <div className="min-h-screen bg-gray-100 flex">

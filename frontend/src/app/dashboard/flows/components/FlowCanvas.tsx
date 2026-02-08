@@ -16,10 +16,14 @@ import { useFlowStore } from '../store';
 import { StartNode } from './nodes/StartNode';
 import { MessageNode } from './nodes/MessageNode';
 import { ButtonNode } from './nodes/ButtonNode';
+import { DelayNode, HumanTakeoverNode, ListNode } from './nodes/MiscNodes';
 import { ConditionNode } from './nodes/ConditionNode';
 import { AINode } from './nodes/AINode';
-import { DelayNode, ListNode } from './nodes/MiscNodes';
-import { HumanTakeoverNode } from './nodes/HumanTakeoverNode';
+import { KeywordTriggerNode } from './nodes/KeywordTriggerNode';
+import { QuickReplyNode } from './nodes/QuickReplyNode';
+import { SendPDFNode } from './nodes/SendPDFNode';
+import { SendVideoNode } from './nodes/SendVideoNode';
+import { SendImageNode } from './nodes/SendImageNode';
 
 const nodeTypes: NodeTypes = {
     start: StartNode,
@@ -30,6 +34,11 @@ const nodeTypes: NodeTypes = {
     ai: AINode,
     delay: DelayNode,
     human_takeover: HumanTakeoverNode,
+    keyword_trigger: KeywordTriggerNode,
+    quick_reply: QuickReplyNode,
+    send_pdf: SendPDFNode,
+    send_video: SendVideoNode,
+    send_image: SendImageNode,
 };
 
 export function FlowCanvas() {

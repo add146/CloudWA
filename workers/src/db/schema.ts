@@ -224,6 +224,8 @@ export const tenantAiSettings = sqliteTable('tenant_ai_settings', {
     tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
     aiProviderId: text('ai_provider_id').notNull().references(() => aiProviders.id, { onDelete: 'cascade' }),
     isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+    apiKey: text('api_key'), // Encrypted or raw key for BYOK
+    config: text('config').default('{}'), // JSON: model whitelist, specific settings
     customSystemPrompt: text('custom_system_prompt'),
     usageCurrent: integer('usage_current').default(0),
     usageLimit: integer('usage_limit').default(0),

@@ -97,4 +97,95 @@ settingsRouter.put('/', async (c) => {
     }
 });
 
+// Get Available AI Providers (with configured models)
+settingsRouter.get('/ai-providers', async (c) => {
+    try {
+        const user = c.get('user');
+        const db = drizzle(c.env.DB);
+        const { tenantAiSettings, aiProviders } = await import('@/db/schema');
+        const { and } = await import('drizzle-orm');
+
+        // Get all active AI providers for this tenant
+        const configuredProviders = await db
+            .select({
+                provider: aiProviders.provider,
+                providerId: aiProviders.id,
+                apiKey: tenantAiSettings.apiKey,
+            })
+            .from(tenantAiSettings)
+            .innerJoin(aiProviders, eq(tenantAiSettings.aiProviderId, aiProviders.id))
+            .where(and(
+                eq(tenantAiSettings.tenantId, user.tenantId),
+                eq(aiProviders.isActive, true)
+            ));
+
+        // Define available models per provider
+        const providerModels: Record<string, string[]> = {
+            'openai': [
+                'gpt-4o',
+                'gpt-4o-mini',
+                'gpt-4-turbo',
+                'gpt-3.5-turbo',
+                'gpt-4.1',
+                'gpt-4.1-mini'
+            ],
+            'anthropic': [
+                'claude-sonnet-4',
+                'claude-3.7-sonnet',
+                'claude-3.5-sonnet'
+            ],
+            'google': [
+                'gemini-2.0-flash',
+                'gemini-2.5-flash-preview-05-20',
+                'gemini-2.5-pro-preview-06-05',
+                'gemini-2.5-pro-preview-05-06',
+                'gemini-2.5-flash-preview-04-17',
+                'gemini-2.0-flash-lite',
+                'gemini-1.5-flash',
+                'gemini-1.5-flash-8b'
+            ],
+            'deepseek': [
+                'deepseek-v3-0324',
+                'deepseek-v3-0324-free',
+                'deepseek-r1-0528-free',
+                'deepseek-r1-free'
+            ],
+            'mistral': [
+                'mistral-nemo'
+            ],
+            'meta': [
+                'llama-3.3-70b-instruct'
+            ],
+            'xai': [
+                'grok-3-beta'
+            ]
+        };
+
+        // Build response with only configured providers
+        const availableProviders = configuredProviders.map(cp => ({
+            id: cp.provider,
+            name: cp.provider.charAt(0).toUpperCase() + cp.provider.slice(1),
+            models: providerModels[cp.provider] || [],
+            configured: !!cp.apiKey
+        }));
+
+        // Remove duplicates
+        const uniqueProviders = availableProviders.reduce((acc: any[], current) => {
+            const exists = acc.find(p => p.id === current.id);
+            if (!exists) {
+                acc.push(current);
+            }
+            return acc;
+        }, []);
+
+        return c.json({
+            success: true,
+            data: uniqueProviders,
+        });
+    } catch (error: any) {
+        console.error('Get AI providers error:', error);
+        return c.json({ success: false, error: 'Failed to get AI providers' }, 500);
+    }
+});
+
 export default settingsRouter;

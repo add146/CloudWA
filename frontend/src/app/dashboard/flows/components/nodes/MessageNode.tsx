@@ -1,14 +1,27 @@
-import { memo } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { memo, useState } from 'react';
+import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
 import { MessageSquare } from 'lucide-react';
 
-export const MessageNode = memo(({ data, selected }: NodeProps) => {
+export const MessageNode = memo(({ id, data, selected }: NodeProps) => {
+    const { setNodes } = useReactFlow();
+    const [isEditing, setIsEditing] = useState(false);
+
+    const updateData = (key: string, value: any) => {
+        setNodes((nodes) =>
+            nodes.map((node) =>
+                node.id === id
+                    ? { ...node, data: { ...node.data, [key]: value } }
+                    : node
+            )
+        );
+    };
+
     return (
         <div
             className={`
-        px-3 py-2 rounded-lg border bg-white min-w-[180px] max-w-[280px]
-        ${selected ? 'border-blue-500 ring-1 ring-blue-200 shadow-sm' : 'border-blue-200'}
-      `}
+                px-3 py-2 rounded-lg border bg-white min-w-[200px] max-w-[300px]
+                ${selected ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg' : 'border-blue-200'}
+            `}
         >
             <Handle
                 type="target"
@@ -17,14 +30,32 @@ export const MessageNode = memo(({ data, selected }: NodeProps) => {
             />
 
             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
-                <div className="p-1 rounded bg-blue-50">
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                <div className="p-1.5 rounded bg-blue-50">
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
                 </div>
-                <span className="font-semibold text-xs text-gray-700">Message</span>
+                <span className="font-semibold text-sm text-gray-700">Message</span>
             </div>
 
-            <div className="text-xs text-gray-600 line-clamp-3 whitespace-pre-wrap leading-relaxed">
-                {data.message || data.text || <span className="text-gray-400 italic">Enter message...</span>}
+            {/* Inline Editable Message */}
+            <textarea
+                value={data.message || ''}
+                onChange={(e) => updateData('message', e.target.value)}
+                onFocus={() => setIsEditing(true)}
+                onBlur={() => setIsEditing(false)}
+                placeholder="Enter your message..."
+                rows={3}
+                className={`
+                    w-full text-sm text-gray-700 resize-none rounded-md p-2
+                    border transition-all duration-200
+                    ${isEditing
+                        ? 'border-blue-400 bg-blue-50/50 focus:outline-none focus:ring-1 focus:ring-blue-300'
+                        : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                    }
+                `}
+            />
+
+            <div className="text-[10px] text-gray-400 mt-1">
+                Use {'{{variableName}}'} for dynamic content
             </div>
 
             <Handle

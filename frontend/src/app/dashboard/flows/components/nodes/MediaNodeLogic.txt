@@ -1,0 +1,42 @@
+import { useState } from 'react';
+import { useReactFlow } from '@xyflow/react';
+
+export const useMediaNode = (id: string, data: any) => {
+    const { updateNodeData } = useReactFlow();
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleUpload = async (file: File) => {
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
+            const res = await fetch(`${API_URL}/api/media/upload`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: formData
+            });
+            const result = await res.json();
+            
+            if (result.success && result.data) {
+                updateNodeData(id, { 
+                    fileUrl: result.data.url,
+                    fileName: result.data.filename,
+                    fileType: result.data.contentType
+                });
+            } else {
+                alert('Upload failed: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Upload error');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return { isUploading, handleUpload };
+};

@@ -11,7 +11,8 @@ import {
     Settings,
     LogOut,
     Menu,
-    X
+    X,
+    MessageCircle
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -46,7 +47,7 @@ export default function DashboardLayout({
     };
 
     const navigation = [
-        // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // TODO: Create dashboard home
+        { name: 'Chat', href: '/dashboard/chat', icon: MessageCircle },
         { name: 'Devices', href: '/dashboard/devices', icon: Smartphone },
         { name: 'Flows', href: '/dashboard/flows', icon: GitMerge },
         { name: 'Contacts', href: '/dashboard/contacts', icon: Users },

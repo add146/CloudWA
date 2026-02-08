@@ -5,9 +5,11 @@ import { useEffect, useState, Suspense } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 // import { Save, ArrowLeft } from 'lucide-react';
 
-import { useFlowStore } from '../../store';
-import { NodePalette } from '../../components/NodePalette';
-import { FlowCanvas } from '../../components/FlowCanvas';
+import { useFlowStore } from '../flows/store';
+import { NodePalette } from '../flows/components/NodePalette';
+import { FlowCanvas } from '../flows/components/FlowCanvas';
+// Correct import name and path
+import { NodeConfigPanel } from '../flows/components/NodeConfigPanel';
 
 export function FlowEditorPageClient() {
     const searchParams = useSearchParams();
@@ -88,24 +90,10 @@ export function FlowEditorPageClient() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            // Extract trigger keywords from KeywordTriggerNode if exists
-            const triggerNode = nodes.find(n => n.type === 'keyword_trigger');
-            let triggerKeywords = [];
-
-            if (triggerNode && triggerNode.data.keywords) {
-                triggerKeywords = triggerNode.data.keywords as any[];
-            }
-
             const flowData = {
                 name: flowName,
                 nodes,
                 edges,
-                // Only update triggerKeywords if we found a trigger node, otherwise keep existing (or empty?)
-                // Actually, if a user adds a trigger node, we should overwrite.
-                // If NO trigger node is present, should we clear keywords? 
-                // For now, let's only send if we found them, or if we want to enforce structure.
-                // Better approach: If triggerNode exists, use its keywords. 
-                ...(triggerNode ? { triggerKeywords } : {})
             };
 
             const response = await fetch(`${API_URL}/api/flows/${flowId}`, {
@@ -230,6 +218,9 @@ export function FlowEditorPageClient() {
                     <div className="flex-1 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-gray-100 to-slate-200">
                         <FlowCanvas />
                     </div>
+
+                    {/* Right Sidebar: Configuration Panel */}
+                    <NodeConfigPanel />
                 </ReactFlowProvider>
             </div>
         </div>

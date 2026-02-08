@@ -8,7 +8,7 @@ import type { Env } from '@/types/env';
 
 export interface FlowNode {
     id: string;
-    type: 'start' | 'message' | 'button' | 'list' | 'condition' | 'ai' | 'delay' | 'human_takeover';
+    type: 'start' | 'message' | 'button' | 'list' | 'condition' | 'ai' | 'delay' | 'human_takeover' | 'keyword_trigger' | 'send_pdf' | 'send_video' | 'send_image' | 'quick_reply';
     data: Record<string, any>;
 }
 
@@ -82,6 +82,14 @@ export class FlowExecutor {
                 return this.executeDelay(node);
             case 'human_takeover':
                 return this.executeHumanTakeover(node);
+            case 'keyword_trigger':
+                return this.executeStart(node); // Same behavior as start node
+            case 'send_pdf':
+            case 'send_video':
+            case 'send_image':
+                return this.executeSendMedia(node);
+            case 'quick_reply':
+                return this.executeQuickReply(node, userMessage);
             default:
                 throw new Error(`Unknown node type: ${(node as any).type}`);
         }
@@ -267,7 +275,8 @@ export class FlowExecutor {
         const context = this.session.context;
 
         // Call AI provider
-        const response = await this.callAI(prompt, userMessage || '', context);
+        // Call AI provider
+        const response = await this.callAI(prompt, userMessage || '', context, node.data);
 
         // Save AI response to variables
         if (node.data.saveAs) {
@@ -419,9 +428,230 @@ export class FlowExecutor {
     /**
      * Call AI provider
      */
-    private async callAI(prompt: string, userMessage: string, context: any[]): Promise<string> {
-        // TODO: Integrate with existing AI router
-        // For now, return placeholder
-        return `AI response to: "${userMessage}"`;
+    private async callAI(
+        prompt: string,
+        userMessage: string,
+        context: Array<{ role: 'user' | 'assistant'; content: string }>,
+        nodeData: Record<string, any>
+    ): Promise<string> {
+        // 1. Get Tenant ID from session (need to pass it or fetch it)
+        // Since we don't have tenantId in session, we might need to lookup device -> tenant
+        // Optimization: Pass tenantId to FlowExecutor constructor
+        // For now, let's assume we can query it or it's in the environment context if we had it.
+        // Actually, we can fetch device to get tenantId.
+
+        try {
+            const { drizzle } = await import('drizzle-orm/d1');
+            const { eq, and } = await import('drizzle-orm');
+            const { devices: devicesTable, tenantAiSettings, aiProviders } = await import('@/db/schema');
+            const { OpenAIProvider } = await import('@/ai/providers/openai');
+
+            const db = drizzle(this.env.DB);
+
+            // Get Device -> Tenant
+            const deviceId = this.session.deviceId;
+            const [device] = await db
+                .select()
+                .from(devicesTable)
+                .where(eq(devicesTable.id, deviceId))
+                .limit(1);
+
+            if (!device) {
+                console.error(`Device not found for AI execution: ${deviceId}`);
+                return "Error: Device not found.";
+            }
+
+            const tenantId = device.tenantId;
+            const requestedProvider = nodeData.provider || 'openai'; // default to openai
+            const requestedModel = nodeData.model;
+
+            // Get Tenant Settings for this provider
+            const query = await db
+                .select({
+                    setting: tenantAiSettings,
+                    provider: aiProviders
+                })
+                .from(tenantAiSettings)
+                .innerJoin(aiProviders, eq(tenantAiSettings.aiProviderId, aiProviders.id))
+                .where(and(
+                    eq(tenantAiSettings.tenantId, tenantId),
+                    eq(aiProviders.provider, requestedProvider)
+                ))
+                .limit(1);
+
+            let config = query[0];
+            let apiKey = '';
+            let modelId = requestedModel;
+
+            if (config) {
+                // Tenant has specific settings exists
+                const settingConfig = config.setting.config ? JSON.parse(config.setting.config) : {};
+                apiKey = config.setting.apiKey || config.provider.apiKey;
+                // Use requested model -> tenant config model -> provider default model
+                modelId = modelId || settingConfig.model || config.provider.modelId;
+            } else {
+                // No tenant setting found, check if System Provider exists and is active
+                const [systemProvider] = await db
+                    .select()
+                    .from(aiProviders)
+                    .where(and(
+                        eq(aiProviders.provider, requestedProvider),
+                        eq(aiProviders.isActive, true)
+                    ))
+                    .limit(1);
+
+                if (!systemProvider) {
+                    console.error(`AI Provider not found/active: ${requestedProvider}`);
+                    return "Error: AI Provider not configured or inactive.";
+                }
+
+                apiKey = systemProvider.apiKey;
+                modelId = modelId || systemProvider.modelId;
+            }
+
+            if (!apiKey) {
+                return "Error: AI API Key not configured (System default is also missing).";
+            }
+
+            // Instantiate Provider
+            let provider;
+            if (requestedProvider === 'openai') {
+                provider = new OpenAIProvider(apiKey, modelId || 'gpt-4o');
+            } else {
+                return `Error: Provider ${requestedProvider} not supported yet.`;
+            }
+
+            // Generate
+            // Extract prompts from nodeData (new enhanced format)
+            const systemPrompt = this.resolveVariables(nodeData.systemPrompt || nodeData.prompt || 'You are a helpful AI assistant.');
+            const userPrompt = this.resolveVariables(nodeData.userPrompt || userMessage);
+            const temperature = nodeData.temperature !== undefined ? nodeData.temperature : 0.7;
+            const maxTokens = nodeData.maxTokens || 1000;
+
+            // TODO: Handle intentions if defined
+            // If nodeData.intentions is populated, we should include them in the system prompt
+            // For intent classification, we can add: "Classify user intent as one of: [intention names]"
+
+            // TODO: Pass context to provider if supported (OpenAI chat history)
+            // Current OpenAIProvider implementation splits system prompt and user prompt.
+            // We need to enhance OpenAIProvider to accept history or handle it here.
+            // For now, let's just send the user message and system prompt.
+
+            return await provider.generateText(userPrompt, {
+                systemPrompt: systemPrompt,
+                temperature: temperature,
+                maxTokens: maxTokens
+            });
+
+        } catch (error: any) {
+            console.error('AI Execution Error:', error);
+            return "Thinking failed: " + error.message;
+        }
+    }
+    /**
+     * Send Media Node (Image, Video, PDF)
+     */
+    private async executeSendMedia(node: FlowNode): Promise<FlowExecutionResult> {
+        const typeMap: Record<string, string> = {
+            'send_image': 'image',
+            'send_video': 'video',
+            'send_pdf': 'pdf'
+        };
+
+        const mediaType = typeMap[node.type] || 'file';
+        const fileUrl = this.resolveVariables(node.data.fileUrl || '');
+        const fileName = this.resolveVariables(node.data.fileName || 'file');
+        const fileType = node.data.fileType || 'application/octet-stream';
+        const caption = this.resolveVariables(node.data.caption || '');
+
+        const nextNode = this.getNextNode(node.id);
+
+        if (!fileUrl) {
+            // Skip if no file
+            return {
+                messages: [{ type: 'text', content: `[Error: No file uploaded for ${mediaType}]` }],
+                nextNodeId: nextNode?.id || null,
+                shouldWait: false,
+                completed: !nextNode
+            };
+        }
+
+        return {
+            messages: [{
+                type: mediaType,
+                content: {
+                    url: fileUrl,
+                    filename: fileName,
+                    mimetype: fileType,
+                    caption: caption
+                }
+            }],
+            nextNodeId: nextNode?.id || null,
+            shouldWait: false,
+            completed: !nextNode,
+        };
+    }
+
+    /**
+     * Quick Reply Node
+     */
+    private async executeQuickReply(node: FlowNode, userMessage?: string): Promise<FlowExecutionResult> {
+        if (!userMessage) {
+            // Send buttons
+            const buttons = (node.data.buttons || []).map((b: any) => ({
+                id: b.id,
+                title: this.resolveVariables(b.label || b.title || ''),
+            }));
+
+            return {
+                messages: [{
+                    type: 'quick_reply',
+                    content: {
+                        header: this.resolveVariables(node.data.header || ''),
+                        body: this.resolveVariables(node.data.body || ''),
+                        footer: this.resolveVariables(node.data.footer || ''),
+                        buttons,
+                    },
+                }],
+                nextNodeId: node.id, // wait for response
+                shouldWait: true,
+                completed: false,
+            };
+        }
+
+        // Handle Response
+        const buttons = node.data.buttons || [];
+        const selectedButton = buttons.find((b: any) =>
+            (b.label || b.title).toLowerCase() === userMessage.toLowerCase()
+        );
+
+        // Even if not an exact button match, we might want to allow it if it's "Fallback" or just proceed?
+        // But usually Quick Reply implies strict selection or at least handling it.
+        // For now, similar to ButtonNode, we check match.
+
+        if (!selectedButton && !node.data.fallback) {
+            // If we had a fallback logic, we'd use it. For now, strict or just pass through if we treat as text?
+            // Let's behave like ButtonNode for consistency: require match or show error
+            return {
+                messages: [{ type: 'text', content: 'Invalid option. Please select a button.' }],
+                nextNodeId: node.id,
+                shouldWait: true,
+                completed: false,
+            };
+        }
+
+        if (node.data.saveAs) {
+            this.session.variables[node.data.saveAs] = selectedButton ? (selectedButton.value || userMessage) : userMessage;
+        }
+
+        // Find edge
+        const nextNode = this.getNextNode(node.id, selectedButton?.id || 'fallback');
+
+        return {
+            messages: [],
+            nextNodeId: nextNode?.id || null,
+            shouldWait: false,
+            completed: !nextNode,
+        };
     }
 }

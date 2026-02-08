@@ -10,7 +10,11 @@ import {
     Bot,
     Clock,
     User,
-    GripVertical
+    GripVertical,
+    Key,
+    FileText,
+    Video,
+    Image as ImageIcon
 } from 'lucide-react';
 
 const nodeTypes = [
@@ -20,8 +24,13 @@ const nodeTypes = [
     { type: 'list', label: 'List', icon: List, desc: 'Display list options', color: 'text-cyan-600', borderColor: 'border-cyan-200 hover:border-cyan-500' },
     { type: 'condition', label: 'Condition', icon: GitFork, desc: 'Branch based on logic', color: 'text-amber-600', borderColor: 'border-amber-200 hover:border-amber-500' },
     { type: 'ai', label: 'AI Reply', icon: Bot, desc: 'Generate AI response', color: 'text-indigo-600', borderColor: 'border-indigo-200 hover:border-indigo-500' },
+    { type: 'keyword_trigger', label: 'Keyword Trigger', icon: Key, desc: 'Start flow on keyword match', color: 'text-amber-600', borderColor: 'border-amber-200 hover:border-amber-500' },
     { type: 'delay', label: 'Delay', icon: Clock, desc: 'Wait before next step', color: 'text-orange-600', borderColor: 'border-orange-200 hover:border-orange-500' },
     { type: 'human_takeover', label: 'Human', icon: User, desc: 'Transfer to human agent', color: 'text-rose-600', borderColor: 'border-rose-200 hover:border-rose-500' },
+    { type: 'send_pdf', label: 'Send PDF', icon: FileText, desc: 'Send a PDF file', color: 'text-red-600', borderColor: 'border-red-200 hover:border-red-500' },
+    { type: 'send_video', label: 'Send Video', icon: Video, desc: 'Send a video file', color: 'text-pink-600', borderColor: 'border-pink-200 hover:border-pink-500' },
+    { type: 'send_image', label: 'Send Image', icon: ImageIcon, desc: 'Send an image', color: 'text-violet-600', borderColor: 'border-violet-200 hover:border-violet-500' },
+    { type: 'quick_reply', label: 'Quick Reply', icon: MessageSquare, desc: 'Message with buttons', color: 'text-purple-600', borderColor: 'border-purple-200 hover:border-purple-500' },
 ];
 
 export function NodePalette() {

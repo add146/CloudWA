@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFlowStore } from '../store';
 // import { Trash } from 'lucide-react';
 import { VariablePicker } from './VariablePicker'; // Assuming VariablePicker is in a local file
@@ -206,33 +206,238 @@ function ConditionConfig({ node, onUpdate }: any) {
 }
 
 function AIConfig({ node, onUpdate }: any) {
+    const [showIntentions, setShowIntentions] = useState(false);
+    const [availableProviders, setAvailableProviders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch available providers from API
+    useEffect(() => {
+        const fetchProviders = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/settings/ai-providers`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setAvailableProviders(data.data || []);
+                } else {
+                    console.error('Failed to fetch AI providers');
+                    // Fallback to OpenAI only
+                    setAvailableProviders([
+                        { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'], configured: true }
+                    ]);
+                }
+            } catch (error) {
+                console.error('Error fetching AI providers:', error);
+                // Fallback
+                setAvailableProviders([
+                    { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'], configured: true }
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProviders();
+    }, []);
+
+    const currentProvider = availableProviders.find(p => p.id === (node.data.provider || 'openai'));
+    const intentions = node.data.intentions || [];
+    const temperature = node.data.temperature !== undefined ? node.data.temperature : 0.7;
+
+    const addIntention = () => {
+        const newIntentions = [...intentions, { name: '', description: '' }];
+        onUpdate(node.id, { intentions: newIntentions });
+    };
+
+    const updateIntention = (index: number, field: 'name' | 'description', value: string) => {
+        const newIntentions = [...intentions];
+        newIntentions[index][field] = value;
+        onUpdate(node.id, { intentions: newIntentions });
+    };
+
+    const removeIntention = (index: number) => {
+        const newIntentions = intentions.filter((_: any, i: number) => i !== index);
+        onUpdate(node.id, { intentions: newIntentions });
+    };
+
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
+            {/* Title */}
+            <div className="flex items-center gap-2 pb-2 border-b">
+                <span className="text-lg">🤖</span>
+                <h4 className="font-semibold text-sm">LLM Text Generation</h4>
+            </div>
+
+            {/* Model Selection */}
             <div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        AI Prompt / Instructions
-                    </label>
-                    <VariablePicker
-                        value={node.data.prompt || ''}
-                        onChange={(value) => onUpdate(node.id, { prompt: value })}
-                        placeholder="You are a helpful assistant..."
-                        rows={4}
-                    />
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Model
+                </label>
+                {loading ? (
+                    <div className="text-xs text-gray-500">Loading models...</div>
+                ) : (
+                    <select
+                        value={node.data.model || 'gpt-4o-mini'}
+                        onChange={(e) => onUpdate(node.id, { model: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        {availableProviders.flatMap((provider: any) =>
+                            provider.models.map((modelId: string) => (
+                                <option key={`${provider.id}-${modelId}`} value={modelId}>
+                                    {modelId.split('-').map((word: string) =>
+                                        word.charAt(0).toUpperCase() + word.slice(1)
+                                    ).join(' ')} ({provider.name})
+                                </option>
+                            ))
+                        )}
+                    </select>
+                )}
+            </div>
+
+            {/* System Prompt */}
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    System Prompt
+                </label>
+                <VariablePicker
+                    value={node.data.systemPrompt || ''}
+                    onChange={(value) => onUpdate(node.id, { systemPrompt: value })}
+                    placeholder="You are a helpful AI assistant. Be concise and professional in your responses."
+                    rows={3}
+                    className="text-sm"
+                />
+                <div className="flex justify-end mt-1">
+                    <button className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <span>🔗</span> Variables
+                    </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                    Define the AI's role and behavior. Example: "You are a customer service representative for a tech company. Be friendly and helpful."
+                </p>
+            </div>
+
+            {/* User Prompt */}
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    User Prompt
+                </label>
+                <VariablePicker
+                    value={node.data.userPrompt || ''}
+                    onChange={(value) => onUpdate(node.id, { userPrompt: value })}
+                    placeholder="Enter your prompt here..."
+                    rows={3}
+                    className="text-sm"
+                />
+                <div className="flex justify-end mt-1">
+                    <button className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <span>🔗</span> Variables
+                    </button>
                 </div>
             </div>
 
+            {/* Intentions Section */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Save Response As
+                <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-medium text-gray-700">
+                        Intentions
+                    </label>
+                    <button
+                        onClick={addIntention}
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                        <span>+</span> Add Intention
+                    </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">
+                    Add intentions to help the AI classify user messages and respond appropriately. Each intention will be available as a variable.
+                </p>
+                {intentions.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                        {intentions.map((intent: any, idx: number) => (
+                            <div key={idx} className="p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                <div className="flex items-center justify-between mb-2">
+                                    <input
+                                        type="text"
+                                        value={intent.name || ''}
+                                        onChange={(e) => updateIntention(idx, 'name', e.target.value)}
+                                        placeholder="Intent name (e.g., complaint, inquiry)"
+                                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+                                    />
+                                    <button
+                                        onClick={() => removeIntention(idx)}
+                                        className="ml-2 text-red-500 hover:text-red-700 text-xs"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={intent.description || ''}
+                                    onChange={(e) => updateIntention(idx, 'description', e.target.value)}
+                                    placeholder="Description"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Temperature */}
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Temperature ({temperature.toFixed(1)})
+                </label>
+                <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={temperature}
+                    onChange={(e) => onUpdate(node.id, { temperature: parseFloat(e.target.value) })}
+                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>More focused</span>
+                    <span>More creative</span>
+                </div>
+            </div>
+
+            {/* Max Tokens */}
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Max Tokens
+                </label>
+                <input
+                    type="number"
+                    value={node.data.maxTokens || 1000}
+                    onChange={(e) => onUpdate(node.id, { maxTokens: parseInt(e.target.value) || 1000 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="1000"
+                    min="1"
+                    max="4000"
+                />
+            </div>
+
+            {/* Variable Name */}
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Variable Name
                 </label>
                 <input
                     type="text"
                     value={node.data.saveAs || ''}
                     onChange={(e) => onUpdate(node.id, { saveAs: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    placeholder="ai_response"
+                    placeholder="e.g. ai_response"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                    Store the LLM response in this variable. If intentions are defined, the detected intent will be stored in variableName_intent.
+                </p>
             </div>
         </div>
     );

@@ -148,7 +148,7 @@ export default function FlowsPage() {
 
             const data = await response.json();
             if (data.success) {
-                router.push(`/dashboard/flows/${data.data.id}/edit`);
+                router.push(`/dashboard/flow-editor?flowId=${data.data.id}`);
             }
         } catch (err: any) {
             console.error('Failed to create flow:', err);
@@ -321,7 +321,7 @@ export default function FlowsPage() {
                                 <div className="flex items-center gap-2 ml-4">
                                     <button
                                         onClick={() =>
-                                            router.push(`/dashboard/flows/${flow.id}/edit`)
+                                            router.push(`/dashboard/flow-editor?flowId=${flow.id}`)
                                         }
                                         className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm font-medium"
                                         title="Edit flow"

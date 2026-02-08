@@ -159,6 +159,7 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
+
                     {/* Submit Button */}
                     <div className="flex items-center justify-between pt-4 border-t mt-6">
                         <div className="text-sm">
@@ -188,6 +189,161 @@ export default function SettingsPage() {
                     </div>
                 </form>
             </div>
+
+            {/* AI Settings Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-8">
+                <h2 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2 flex items-center gap-2">
+                    <span>🤖</span> AI Configuration (BYOK)
+                </h2>
+
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+                    <div className="flex gap-3">
+                        <span className="text-purple-600 flex-shrink-0 mt-0.5">ℹ️</span>
+                        <div className="text-sm text-purple-800">
+                            <strong>Bring Your Own Key (BYOK):</strong><br />
+                            Configure your AI Provider keys here to enable AI features in your flows.
+                            Your keys are stored securely and only used for your workspace.
+                        </div>
+                    </div>
+                </div>
+
+                <AISettingsForm />
+            </div>
+        </div>
+    );
+}
+
+function AISettingsForm() {
+    const [providers, setProviders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    };
+
+    useEffect(() => {
+        fetchProviders();
+    }, []);
+
+    const fetchProviders = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/settings/ai`, {
+                headers: getAuthHeaders()
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setProviders(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load AI settings', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async (providerId: string, apiKey: string) => {
+        setSaving(true);
+        setMessage(null);
+        try {
+            const res = await fetch(`${API_URL}/api/settings/ai`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    providerId,
+                    apiKey,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMessage({ type: 'success', text: 'AI Key saved successfully!' });
+                fetchProviders(); // Refresh to show masked key
+            } else {
+                setMessage({ type: 'error', text: data.error || 'Failed to save' });
+            }
+        } catch (e) {
+            setMessage({ type: 'error', text: 'Network error' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) return <div className="text-center py-4 text-gray-500">Loading AI settings...</div>;
+
+    return (
+        <div className="space-y-6">
+            {message && (
+                <div className={`text-sm font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-600'} mb-2`}>
+                    {message.text}
+                </div>
+            )}
+
+            {providers.map((provider) => (
+                <div key={provider.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="font-medium text-gray-900">{provider.displayName}</div>
+                        {provider.modelId && (
+                            <div className="text-xs px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
+                                {provider.modelId}
+                            </div>
+                        )}
+                        {provider.tenantSetting?.hasApiKey ? (
+                            <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
+                                Active
+                            </span>
+                        ) : (
+                            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                                Not Configured
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex gap-2">
+                        <input
+                            type="password"
+                            placeholder={provider.tenantSetting?.maskedApiKey || "Enter API Key"}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            onChange={(e) => {
+                                // Store temporarily or handle state locally for each input
+                                // For simplicity calling save directly on blur or button click
+                                provider.newKey = e.target.value;
+                            }}
+                        />
+                        <button
+                            onClick={(e) => {
+                                // Find input value properly
+                                const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                if (input.value) {
+                                    handleSave(provider.id, input.value);
+                                    input.value = ''; // Clear after save
+                                }
+                            }}
+                            disabled={saving}
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition"
+                        >
+                            Save
+                        </button>
+                    </div>
+                    {provider.tenantSetting?.hasApiKey && (
+                        <p className="text-xs text-gray-500 mt-1">
+                            Key configured: {provider.tenantSetting.maskedApiKey}
+                        </p>
+                    )}
+                </div>
+            ))}
+
+            {providers.length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                    No AI providers available. Please contact Super Admin.
+                </div>
+            )}
         </div>
     );
 }

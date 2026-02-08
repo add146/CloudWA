@@ -58,9 +58,23 @@ export async function triggerFlow(
     let matchedFlow = null;
     for (const flow of activeFlows) {
         const keywords = JSON.parse(flow.triggerKeywords);
-        const matched = keywords.some((kw: string) =>
-            incomingMessage.toLowerCase().includes(kw.toLowerCase())
-        );
+
+        const matched = keywords.some((kw: any) => {
+            if (typeof kw === 'string') {
+                // Legacy: Contains match
+                return incomingMessage.toLowerCase().includes(kw.toLowerCase());
+            } else if (typeof kw === 'object' && kw.term) {
+                // New: Check type
+                if (kw.type === 'exact') {
+                    return incomingMessage.toLowerCase().trim() === kw.term.toLowerCase().trim();
+                } else {
+                    // Default to contains
+                    return incomingMessage.toLowerCase().includes(kw.term.toLowerCase());
+                }
+            }
+            return false;
+        });
+
         if (matched) {
             matchedFlow = flow;
             break;
@@ -86,10 +100,11 @@ async function startNewFlow(
 ): Promise<void> {
     const db = drizzle(env.DB);
     const flowGraph: FlowGraph = JSON.parse(flow.flowJson);
-    const startNode = flowGraph.nodes.find(n => n.type === 'start');
+    // Find 'start' node OR 'keyword_trigger' node
+    const startNode = flowGraph.nodes.find(n => n.type === 'start' || n.type === 'keyword_trigger');
 
     if (!startNode) {
-        throw new Error(`No start node found in flow: ${flow.id}`);
+        throw new Error(`No start/trigger node found in flow: ${flow.id}`);
     }
 
     // Create session
@@ -262,15 +277,44 @@ async function sendMessage(
         });
 
         if (message.type === 'text') {
-            // WAHA Core (free) only supports 'default' session name
             await waha.sendMessage({
                 session: 'default',
                 chatId,
                 text: message.content,
             });
+        } else if (message.type === 'image') {
+            await waha.sendImage({
+                session: 'default',
+                chatId,
+                file: message.content, // { url, mimetype, filename }
+                caption: message.content.caption
+            });
+        } else if (message.type === 'video' || message.type === 'pdf') {
+            await waha.sendFile({
+                session: 'default',
+                chatId,
+                file: message.content, // { url, mimetype, filename }
+                caption: message.content.caption
+            });
+        } else if (message.type === 'quick_reply') {
+            // Fallback to text + options if native not supported
+            await waha.sendButtons({
+                session: 'default',
+                chatId,
+                title: message.content.header,
+                text: message.content.body,
+                footer: message.content.footer,
+                buttons: message.content.buttons.map((b: any) => ({ id: b.id, text: b.title }))
+            });
+        } else if (message.type === 'button') {
+            // Legacy button support
+            await waha.sendButtons({
+                session: 'default',
+                chatId,
+                text: message.content.text,
+                buttons: message.content.buttons.map((b: any) => ({ id: b.id, text: b.title }))
+            });
         }
-
-        // TODO: Handle button and list messages
     } else if (device.gatewayType === 'cloudapi') {
         const config = JSON.parse(device.cloudApiConfig || '{}');
 
@@ -286,6 +330,6 @@ async function sendMessage(
         if (message.type === 'text') {
             await cloudApi.sendText(contactPhone, message.content);
         }
-        // TODO: Handle button and list messages
+        // TODO: Implement media for Cloud API
     }
 }
