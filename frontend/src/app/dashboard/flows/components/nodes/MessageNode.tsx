@@ -12,7 +12,7 @@ export const MessageNode = memo(({ data, selected }: NodeProps) => {
         >
             <Handle
                 type="target"
-                position={Position.Top}
+                position={Position.Left}
                 className="!bg-gray-400 !w-2.5 !h-2.5 !border-2 !border-white"
             />
 
@@ -29,7 +29,7 @@ export const MessageNode = memo(({ data, selected }: NodeProps) => {
 
             <Handle
                 type="source"
-                position={Position.Bottom}
+                position={Position.Right}
                 className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-white"
             />
         </div>

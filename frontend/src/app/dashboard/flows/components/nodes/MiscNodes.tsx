@@ -16,7 +16,7 @@ export function DelayNode({ data, selected }: NodeProps) {
         >
             <Handle
                 type="target"
-                position={Position.Top}
+                position={Position.Left}
                 className="!bg-gray-400 !w-2.5 !h-2.5 !border-2 !border-white"
             />
             <div className="flex items-center gap-2">
@@ -32,7 +32,7 @@ export function DelayNode({ data, selected }: NodeProps) {
             </div>
             <Handle
                 type="source"
-                position={Position.Bottom}
+                position={Position.Right}
                 className="!bg-orange-500 !w-2.5 !h-2.5 !border-2 !border-white"
             />
         </div>
@@ -49,7 +49,7 @@ export function HumanTakeoverNode({ selected }: NodeProps) {
         >
             <Handle
                 type="target"
-                position={Position.Top}
+                position={Position.Left}
                 className="!bg-gray-400 !w-2.5 !h-2.5 !border-2 !border-white"
             />
             <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ export function ListNode({ data, selected }: NodeProps) {
         >
             <Handle
                 type="target"
-                position={Position.Top}
+                position={Position.Left}
                 className="!bg-gray-400 !w-2.5 !h-2.5 !border-2 !border-white"
             />
 
@@ -99,7 +99,7 @@ export function ListNode({ data, selected }: NodeProps) {
 
             <Handle
                 type="source"
-                position={Position.Bottom}
+                position={Position.Right}
                 className="!bg-cyan-500 !w-2.5 !h-2.5 !border-2 !border-white"
             />
         </div>

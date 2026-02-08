@@ -11,7 +11,7 @@ export function HumanTakeoverNode({ selected }: NodeProps) {
         >
             <Handle
                 type="target"
-                position={Position.Top}
+                position={Position.Left}
                 className="!bg-gray-400 !w-2.5 !h-2.5 !border-2 !border-white"
             />
             <div className="flex items-center gap-2">
