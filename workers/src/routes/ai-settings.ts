@@ -61,10 +61,30 @@ aiSettingsRouter.get('/', async (c) => {
             };
         });
 
+        // 4. Server-Side Filtering based on Context (Referer)
+        // This solves the issue where "Zombie Frontend" ignores isActive/isEnabled flags.
+        // We only hide unconfigured paid providers if the user is in the Flow Editor.
+        const referer = c.req.header('Referer') || '';
+        const isFlowEditor = referer.includes('flow-editor') || referer.includes('/flows');
+
+        const filtered = merged.filter(p => {
+            if (isFlowEditor) {
+                const isPaid = ['openai', 'gemini', 'anthropic'].includes(p.provider);
+                const hasKey = p.tenantSetting?.hasApiKey;
+                const isEnabled = p.tenantSetting?.isEnabled; // strict check
+
+                // If it's a paid provider, it must have a key AND be enabled to show in Flow Editor
+                if (isPaid && (!hasKey || !isEnabled)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
         c.header('Cache-Control', 'no-store, no-cache, must-revalidate');
         return c.json({
             success: true,
-            data: merged,
+            data: filtered,
         });
     } catch (error: any) {
         return c.json({
