@@ -245,9 +245,12 @@ export class WAHAClient {
     async sendImage(params: {
         session: string;
         chatId: string;
-        file: { url: string; mimetype: string; filename?: string };
+        file: { url: string; mimetype?: string; filename?: string } | string;
         caption?: string;
     }): Promise<any> {
+        // Extract URL from file object if needed
+        const fileUrl = typeof params.file === 'string' ? params.file : params.file.url;
+
         const response = await fetch(`${this.config.baseUrl}/api/sendImage`, {
             method: 'POST',
             headers: {
@@ -257,11 +260,17 @@ export class WAHAClient {
             body: JSON.stringify({
                 session: params.session,
                 chatId: params.chatId.includes('@') ? params.chatId : `${params.chatId}@c.us`,
-                file: params.file,
+                file: {
+                    url: fileUrl  // WAHA expects file object with url property
+                },
                 caption: params.caption,
             }),
         });
-        if (!response.ok) throw new Error(`WAHA API error: ${response.statusText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[WAHAClient] sendImage error:', errorText);
+            throw new Error(`WAHA API error: ${response.statusText}`);
+        }
         return await response.json();
     }
 
@@ -271,9 +280,12 @@ export class WAHAClient {
     async sendFile(params: {
         session: string;
         chatId: string;
-        file: { url: string; mimetype: string; filename?: string };
+        file: { url: string; mimetype?: string; filename?: string } | string;
         caption?: string;
     }): Promise<any> {
+        // Extract URL from file object if needed
+        const fileUrl = typeof params.file === 'string' ? params.file : params.file.url;
+
         // Use sendFile for general files
         const response = await fetch(`${this.config.baseUrl}/api/sendFile`, {
             method: 'POST',
@@ -284,11 +296,17 @@ export class WAHAClient {
             body: JSON.stringify({
                 session: params.session,
                 chatId: params.chatId.includes('@') ? params.chatId : `${params.chatId}@c.us`,
-                file: params.file,
+                file: {
+                    url: fileUrl  // WAHA expects file object with url property
+                },
                 caption: params.caption,
             }),
         });
-        if (!response.ok) throw new Error(`WAHA API error: ${response.statusText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[WAHAClient] sendFile error:', errorText);
+            throw new Error(`WAHA API error: ${response.statusText}`);
+        }
         return await response.json();
     }
 
