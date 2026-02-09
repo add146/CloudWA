@@ -35,16 +35,18 @@ aiSettingsRouter.get('/', async (c) => {
         // 3. Merge data
         const merged = providers.map(provider => {
             const setting = settings.find(s => s.aiProviderId === provider.id);
+            const settingConfig = setting?.config ? JSON.parse(setting.config) : {};
             return {
                 ...provider,
                 apiKey: null, // Don't return the global system API key
                 tenantSetting: setting ? {
                     id: setting.id,
                     isDefault: setting.isDefault,
+                    isEnabled: settingConfig.isEnabled === true, // Must be explicitly enabled
                     // Return masked API key if exists
                     hasApiKey: !!setting.apiKey,
                     maskedApiKey: setting.apiKey ? `${setting.apiKey.substring(0, 3)}...${setting.apiKey.slice(-4)}` : null,
-                    config: JSON.parse(setting.config || '{}'),
+                    config: settingConfig,
                     customSystemPrompt: setting.customSystemPrompt,
                 } : null
             };
@@ -70,7 +72,7 @@ aiSettingsRouter.put('/', async (c) => {
     try {
         const user = c.get('user');
         const db = drizzle(c.env.DB);
-        const { providerId, apiKey, config, isDefault, customSystemPrompt } = await c.req.json();
+        const { providerId, apiKey, config, isDefault, customSystemPrompt, isEnabled } = await c.req.json();
 
         if (!providerId) {
             return c.json({ success: false, error: 'Provider ID is required' }, 400);
@@ -99,13 +101,20 @@ aiSettingsRouter.put('/', async (c) => {
 
         if (existing) {
             // Update
+            const existingConfig = existing.config ? JSON.parse(existing.config) : {};
+            const newConfig = {
+                ...existingConfig,
+                ...(config || {}),
+                // Explicitly set isEnabled if provided
+                ...(isEnabled !== undefined ? { isEnabled } : {})
+            };
+
             await db.update(tenantAiSettings)
                 .set({
                     // Only update API Key if provided (allow empty to keep existing, or special value to clear?)
-                    // For now: if provided, update it. If null but not undefined, clear it?
-                    // Let's assume if key is provided and length > 0, update it.
+                    // For now: if key is provided and length > 0, update it.
                     ...(apiKey ? { apiKey } : {}),
-                    config: JSON.stringify(config || {}),
+                    config: JSON.stringify(newConfig),
                     isDefault: isDefault ?? existing.isDefault,
                     customSystemPrompt: customSystemPrompt ?? existing.customSystemPrompt,
                     lastUsed: new Date().toISOString()
@@ -113,11 +122,16 @@ aiSettingsRouter.put('/', async (c) => {
                 .where(eq(tenantAiSettings.id, existing.id));
         } else {
             // Insert
+            const newConfig = {
+                ...(config || {}),
+                isEnabled: isEnabled !== undefined ? isEnabled : true // Default to true for new entries
+            };
+
             await db.insert(tenantAiSettings).values({
                 tenantId: user.tenantId,
                 aiProviderId: providerId,
                 apiKey: apiKey || null,
-                config: JSON.stringify(config || {}),
+                config: JSON.stringify(newConfig),
                 isDefault: isDefault || false,
                 customSystemPrompt,
             });
