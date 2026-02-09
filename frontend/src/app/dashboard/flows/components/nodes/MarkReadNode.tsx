@@ -1,11 +1,12 @@
-import { Handle, Position, NodeProps } from '@xyflow/react';
-import { CheckCheck } from 'lucide-react';
+import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
+import { CheckCheck, Trash } from 'lucide-react';
 
-export function MarkReadNode({ selected }: NodeProps) {
+export function MarkReadNode({ id, selected }: NodeProps) {
+    const { setNodes } = useReactFlow();
     return (
         <div
             className={`
-        px-3 py-2 rounded-lg border bg-white min-w-[150px] shadow-sm
+        px-3 py-2 rounded-lg border bg-white min-w-[150px] shadow-sm relative group
         ${selected ? 'border-sky-500 ring-1 ring-sky-200' : 'border-sky-200'}
       `}
         >
@@ -24,6 +25,16 @@ export function MarkReadNode({ selected }: NodeProps) {
                     <span className="text-[10px] text-gray-400">Update status</span>
                 </div>
             </div>
+
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                }}
+                className="absolute -top-2 -right-2 p-1 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 hover:border-red-300 shadow-sm transition-colors opacity-0 group-hover:opacity-100"
+            >
+                <Trash className="w-3 h-3" />
+            </button>
 
             <Handle
                 type="source"
