@@ -230,6 +230,13 @@ app.post('/api/webhook/cloud-api', async (c) => {
 });
 
 // ============================================
+// PUBLIC ROUTES (no authentication required)
+// Media GET endpoints must be public so WAHA can download files
+// ============================================
+
+app.route('/api/media', media); // Media Routes - GET is public, POST requires auth
+
+// ============================================
 // PROTECTED API ROUTES (require authentication)
 // These are registered AFTER webhooks to ensure webhooks bypass auth
 // ============================================
@@ -241,7 +248,6 @@ app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
 app.route('/api', ai); // AI routes under /api/knowledge-base
 app.route('/api/settings/ai', aiSettings); // AI Settings
 app.route('/api/super-admin', superAdmin); // Super Admin Routes
-app.route('/api/media', media); // Media Routes
 app.route('/api/chats', chats); // Chat Routes
 
 // 404 handler
