@@ -286,7 +286,28 @@ export class WAHAClient {
         caption?: string;
     }): Promise<any> {
         // Extract URL from file object if needed
-        const fileUrl = typeof params.file === 'string' ? params.file : params.file.url;
+        let fileUrl = typeof params.file === 'string' ? params.file : params.file.url;
+
+        console.log('[WAHAClient] sendFile - URL:', fileUrl, 'Caption:', params.caption);
+
+        // WAHA NOWEB Core doesn't support URL sending, so we must convert to Base64
+        if (fileUrl.startsWith('http')) {
+            try {
+                console.log('[WAHAClient] sendFile - Downloading for Base64 conversion...');
+                const imageRes = await fetch(fileUrl);
+                if (imageRes.ok) {
+                    const arrayBuffer = await imageRes.arrayBuffer();
+                    const contentType = imageRes.headers.get('content-type') || 'application/octet-stream';
+                    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                    fileUrl = `data:${contentType};base64,${base64}`;
+                    console.log('[WAHAClient] sendFile - Converted to Base64, length:', fileUrl.length);
+                } else {
+                    console.warn('[WAHAClient] sendFile - Failed to download for conversion:', imageRes.status);
+                }
+            } catch (error) {
+                console.error('[WAHAClient] sendFile - Error converting to Base64:', error);
+            }
+        }
 
         // Use sendFile for general files
         const response = await fetch(`${this.config.baseUrl}/api/sendFile`, {
