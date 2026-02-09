@@ -6,7 +6,10 @@ const debugRouter = new Hono<HonoContext>();
 
 debugRouter.get('/send-image', async (c) => {
     try {
-        const waha = new WAHAClient(c.env);
+        const waha = new WAHAClient({
+            baseUrl: c.env.WAHA_BASE_URL,
+            apiKey: c.env.WAHA_API_KEY
+        });
         const chatId = c.req.query('phone') || '628996781919'; // Default or param
         const url = 'https://cloudwa-flow.khibroh.workers.dev/api/media/1770633807687-202.png'; // Known working public URL
 
