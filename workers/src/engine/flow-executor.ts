@@ -497,11 +497,19 @@ export class FlowExecutor {
                 // Tenant has specific settings
                 const config = tenantQuery[0];
                 const settingConfig = config.setting.config ? JSON.parse(config.setting.config) : {};
+
+                // Check if explicitly disabled
+                if (settingConfig.isEnabled === false) {
+                    console.error(`[FlowExecutor] Provider ${finalProvider} is explicitly disabled for tenant`);
+                    return "Error: AI Provider is disabled.";
+                }
+
                 apiKey = config.setting.apiKey || config.provider.apiKey || '';
                 modelId = modelId || settingConfig.model || config.provider.modelId;
                 console.log(`[FlowExecutor] Using Tenant AI Settings: Provider=${finalProvider}, HasKey=${!!apiKey}`);
             } else {
-                // No tenant setting, check System Provider
+                // No tenant setting, check System Provider (Global Fallback)
+                // BUT only if the provider is GLOBALLY active
                 const systemQuery = await db
                     .select()
                     .from(aiProviders)
@@ -518,10 +526,13 @@ export class FlowExecutor {
                     console.log(`[FlowExecutor] Using System AI Provider: Provider=${finalProvider}, HasKey=${!!apiKey}`);
                 } else {
                     // Fallback: Use Workers AI if available (doesn't need provider in DB)
+                    // BUT only if requestedProvider was 'workers_ai' or 'hybrid'
+                    // If user requested 'openai' but has no key and no system provider, we should NOT fallback to workers_ai silently.
                     if (requestedProvider === 'workers_ai' || requestedProvider === 'hybrid') {
                         console.log(`[FlowExecutor] No provider in DB, using Workers AI binding directly`);
                         apiKey = ''; // No key needed for Workers AI binding
                         modelId = modelId || '@cf/meta/llama-3.1-8b-instruct';
+                        finalProvider = 'workers_ai'; // Ensure final provider is valid
                     } else {
                         console.error(`AI Provider not found/active: ${requestedProvider}`);
                         return "Error: AI Provider not configured or inactive.";
