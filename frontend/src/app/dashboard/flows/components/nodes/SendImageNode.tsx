@@ -25,19 +25,23 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
                 body: formData
             });
             const result = await res.json();
+            console.log('[SendImageNode] Upload result:', result);
 
             if (result.success && result.data) {
                 const fullUrl = `${API_URL}/api/media/${result.data.key}`;
+                console.log('[SendImageNode] Constructed URL:', fullUrl);
+                console.log('[SendImageNode] Key:', result.data.key);
                 updateNodeData(id, {
                     fileUrl: fullUrl,
                     fileName: result.data.filename,
                     fileType: result.data.contentType
                 });
             } else {
+                console.error('[SendImageNode] Upload failed:', result);
                 alert('Upload failed: ' + (result.error || 'Unknown error'));
             }
         } catch (err) {
-            console.error(err);
+            console.error('[SendImageNode] Upload error:', err);
             alert('Upload error');
         } finally {
             setIsUploading(false);
