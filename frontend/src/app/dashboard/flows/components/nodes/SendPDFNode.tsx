@@ -17,10 +17,10 @@ export const SendPDFNode = memo(({ id, data, selected }: NodeProps) => {
 
         try {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
-            const res = await fetch(`${API_URL} /api/media / upload`, {
+            const res = await fetch(`${API_URL}/api/media/upload`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')} `
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: formData
             });
