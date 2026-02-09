@@ -11,13 +11,14 @@ debugRouter.get('/send-image', async (c) => {
             apiKey: c.env.WAHA_API_KEY
         });
         const chatId = c.req.query('phone') || '628996781919';
-        const url = 'https://cloudwa-flow.khibroh.workers.dev/api/media/1770633807687-202.png';
+        // Use a reliable external image to avoid Worker loopback issues
+        const url = 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png';
         const results: any = {};
 
         // 1. Download and Convert to Base64
-        console.log('Downloading image...');
+        console.log('Downloading image...', url);
         const imgRes = await fetch(url);
-        if (!imgRes.ok) throw new Error('Failed to download image');
+        if (!imgRes.ok) throw new Error(`Failed to download image: ${imgRes.status} ${imgRes.statusText}`);
         const arrayBuffer = await imgRes.arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
         const dataUri = `data:image/png;base64,${base64}`;
