@@ -1,7 +1,7 @@
 
 import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import type { HonoContext } from '@/types/env';
 import { aiProviders, tenantAiSettings } from '@/db/schema';
 import { authMiddleware, requireTenantAdmin } from '@/middleware/auth';
@@ -166,6 +166,39 @@ aiSettingsRouter.put('/', async (c) => {
         return c.json({
             success: false,
             error: error.message || 'Failed to update AI settings'
+        }, 500);
+    }
+});
+
+// Cleanup route for stale settings
+aiSettingsRouter.post('/cleanup', async (c) => {
+    try {
+        const user = c.get('user');
+        const db = drizzle(c.env.DB);
+
+        // Delete settings where api_key is null or empty AND not default
+        const result = await db.delete(tenantAiSettings)
+            .where(
+                and(
+                    eq(tenantAiSettings.tenantId, user.tenantId),
+                    eq(tenantAiSettings.isDefault, false),
+                    or(
+                        sql`api_key IS NULL`,
+                        eq(tenantAiSettings.apiKey, '')
+                    )
+                )
+            )
+            .returning();
+
+        return c.json({
+            success: true,
+            deletedCount: result.length,
+            message: `Cleaned up ${result.length} stale settings`
+        });
+    } catch (error: any) {
+        return c.json({
+            success: false,
+            error: error.message
         }, 500);
     }
 });
