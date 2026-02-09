@@ -6,6 +6,7 @@ import {
     getBezierPath,
     useReactFlow,
 } from '@xyflow/react';
+import { useFlowStore } from '../../store';
 
 export default function DeletableEdge({
     id,
@@ -18,7 +19,7 @@ export default function DeletableEdge({
     style = {},
     markerEnd,
 }: EdgeProps) {
-    const { setEdges } = useReactFlow();
+    const { setEdges } = useFlowStore();
     const [edgePath, labelX, labelY] = getBezierPath({
         sourceX,
         sourceY,
