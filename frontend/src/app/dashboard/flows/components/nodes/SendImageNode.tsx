@@ -86,7 +86,18 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500"></div>
                     ) : (data.fileUrl ? (
                         // Preview image if available
-                        <img src={data.fileUrl as string} alt="Preview" className="w-full h-24 object-cover rounded-md" />
+                        <>
+                            <img
+                                src={data.fileUrl as string}
+                                alt="Preview"
+                                className="w-full h-24 object-cover rounded-md"
+                                onLoad={() => console.log('[SendImageNode] Image loaded:', data.fileUrl)}
+                                onError={(e) => {
+                                    console.error('[SendImageNode] Image load error:', data.fileUrl);
+                                    console.error('[SendImageNode] Error event:', e);
+                                }}
+                            />
+                        </>
                     ) : (
                         <>
                             <Upload className="w-6 h-6 text-gray-400 mb-2" />
