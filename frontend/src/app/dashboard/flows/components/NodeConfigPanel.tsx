@@ -214,28 +214,44 @@ function AIConfig({ node, onUpdate }: any) {
     useEffect(() => {
         const fetchProviders = async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/settings/ai-providers`, {
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
+                const response = await fetch(`${API_URL}/api/settings/ai`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    setAvailableProviders(data.data || []);
+                    if (data.success && Array.isArray(data.data)) {
+                        // Filter only active providers
+                        // A provider is active if it has an API key (tenantSetting.hasApiKey) OR is free (no key needed)
+                        // AND it is enabled (tenantSetting.isEnabled !== false)
+                        const activeProviders = data.data.filter((p: any) => {
+                            const isEnabled = p.tenantSetting?.isEnabled !== false;
+
+                            // Check for free providers or those with keys
+                            const isFree = p.provider === 'workers_ai' || p.displayName.includes('(Free)');
+                            const hasKey = p.tenantSetting?.hasApiKey;
+
+                            return isEnabled && (isFree || hasKey);
+                        }).map((p: any) => ({
+                            id: p.id,
+                            name: p.displayName,
+                            // If models are not explicitly listed in the API response for the provider, 
+                            // we might need to fallback or use the default model.
+                            // For now assuming 'modelId' from DB is the default, but we want a list.
+                            // If the API doesn't return a list of models, we construct one based on the provider type.
+                            models: p.models || (p.modelId ? [p.modelId] : [])
+                        }));
+
+                        setAvailableProviders(activeProviders);
+                    }
                 } else {
                     console.error('Failed to fetch AI providers');
-                    // Fallback to OpenAI only
-                    setAvailableProviders([
-                        { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'], configured: true }
-                    ]);
                 }
             } catch (error) {
                 console.error('Error fetching AI providers:', error);
-                // Fallback
-                setAvailableProviders([
-                    { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'], configured: true }
-                ]);
             } finally {
                 setLoading(false);
             }
