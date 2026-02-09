@@ -207,6 +207,23 @@ export default function DevicesPage() {
                                 >
                                     🗑️
                                 </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm('Refresh connection configuration?')) return;
+                                        try {
+                                            await fetch(`${API_URL}/api/devices/${device.id}/refresh`, {
+                                                method: 'POST',
+                                                headers: getAuthHeaders()
+                                            });
+                                            alert('Connection refreshed!');
+                                            loadDevices();
+                                        } catch (e) { alert('Failed to refresh'); }
+                                    }}
+                                    className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition ml-2"
+                                    title="Refresh Connection"
+                                >
+                                    🔄
+                                </button>
                             </div>
                         </div>
                     ))}

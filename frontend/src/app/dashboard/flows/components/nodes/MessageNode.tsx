@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Trash } from 'lucide-react';
 
 export const MessageNode = memo(({ id, data, selected }: NodeProps) => {
     const { setNodes } = useReactFlow();
@@ -34,6 +34,16 @@ export const MessageNode = memo(({ id, data, selected }: NodeProps) => {
                     <MessageSquare className="w-4 h-4 text-blue-600" />
                 </div>
                 <span className="font-semibold text-sm text-gray-700">Message</span>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             {/* Inline Editable Message */}

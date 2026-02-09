@@ -1,8 +1,11 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { PlayCircle } from 'lucide-react';
+import { Trash, PlayCircle } from 'lucide-react';
+import { useReactFlow } from '@xyflow/react';
 
-export const StartNode = memo(({ selected }: NodeProps) => {
+export const StartNode = memo(({ id, selected }: NodeProps) => {
+    const { setNodes } = useReactFlow();
+
     return (
         <div
             className={`
@@ -10,11 +13,23 @@ export const StartNode = memo(({ selected }: NodeProps) => {
         ${selected ? 'border-emerald-500 ring-1 ring-emerald-200 shadow-sm' : 'border-emerald-200'}
       `}
         >
-            <div className="flex items-center justify-center gap-2">
-                <div className="p-1 rounded bg-emerald-50">
-                    <PlayCircle className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-emerald-50">
+                        <PlayCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    </div>
+                    <span className="font-semibold text-xs text-gray-700">Start</span>
                 </div>
-                <span className="font-semibold text-xs text-gray-700">Start</span>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3 h-3" />
+                </button>
             </div>
             <Handle
                 type="source"

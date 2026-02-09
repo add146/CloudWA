@@ -9,7 +9,7 @@ import type { AIProvider } from '@/ai/providers/base';
 
 export interface FlowNode {
     id: string;
-    type: 'start' | 'message' | 'button' | 'list' | 'condition' | 'ai' | 'delay' | 'human_takeover' | 'keyword_trigger' | 'send_pdf' | 'send_video' | 'send_image' | 'quick_reply';
+    type: 'start' | 'message' | 'button' | 'list' | 'condition' | 'ai' | 'delay' | 'human_takeover' | 'keyword_trigger' | 'send_pdf' | 'send_video' | 'send_image' | 'quick_reply' | 'mark_read';
     data: Record<string, any>;
 }
 
@@ -92,6 +92,8 @@ export class FlowExecutor {
                 return this.executeSendMedia(node);
             case 'quick_reply':
                 return this.executeQuickReply(node, userMessage);
+            case 'mark_read':
+                return this.executeMarkRead(node);
             default:
                 throw new Error(`Unknown node type: ${(node as any).type}`);
         }
@@ -693,6 +695,20 @@ export class FlowExecutor {
 
         return {
             messages: [],
+            nextNodeId: nextNode?.id || null,
+            shouldWait: false,
+            completed: !nextNode,
+        };
+    }
+
+    /**
+     * Mark Read Node - sends blue ticks
+     */
+    private async executeMarkRead(node: FlowNode): Promise<FlowExecutionResult> {
+        const nextNode = this.getNextNode(node.id);
+
+        return {
+            messages: [{ type: 'mark_read', content: {} }],
             nextNodeId: nextNode?.id || null,
             shouldWait: false,
             completed: !nextNode,

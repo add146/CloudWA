@@ -9,6 +9,9 @@ import ai from '@/routes/ai';
 import aiSettings from '@/routes/ai-settings';
 import media from '@/routes/media';
 import chats from '@/routes/chats';
+import { drizzle } from 'drizzle-orm/d1';
+import { eq } from 'drizzle-orm';
+import { devices as devicesTable } from '@/db/schema';
 
 import superAdmin from '@/routes/super-admin';
 
@@ -40,19 +43,9 @@ app.get('/health', (c) => {
 });
 
 // ============================================
-// ROUTES
+// PUBLIC WEBHOOK ROUTES (no auth required)
+// These MUST be registered before protected routes
 // ============================================
-
-app.route('/api/auth', auth);
-app.route('/api/devices', devices);
-app.route('/api/settings', settings); // Tenant settings
-app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
-app.route('/api', ai); // AI routes under /api/knowledge-base
-app.route('/api/settings/ai', aiSettings); // AI Settings
-app.route('/api/super-admin', superAdmin); // Super Admin Routes
-app.route('/api/media', media); // Media Routes
-app.route('/api/chats', chats); // Chat Routes
-
 // Webhook endpoint for WAHA messages
 app.post('/api/webhook/waha', async (c) => {
     try {
@@ -60,23 +53,93 @@ app.post('/api/webhook/waha', async (c) => {
 
         // WAHA webhook format
         const { event, session, payload: data } = payload;
+        // 1. Initial Device ID from Query or Session
+        let deviceId = c.req.query('deviceId') || session;
 
-        console.log('WAHA webhook:', { event, session, data });
+        // 2. Validate Device ID (Check if it's a UUID)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId);
 
-        if (event === 'message' && data?.text) {
+        // 3. Fallback: If not a UUID (like 'default'), resolve using Phone Number
+        if (!isUuid && data?.to) {
+            console.log(`Device ID '${deviceId}' is not a UUID. Resolving by phone number...`);
+
+            try {
+                const to = data.to.split('@')[0]; // Remove @c.us suffix. e.g. "62812345"
+                const { or, eq } = await import('drizzle-orm');
+
+                // Attempt to handle "62" vs "0" prefix issues
+                // If "628...", also try "08..."
+                let altPhone = to;
+                if (to.startsWith('62')) {
+                    altPhone = '0' + to.substring(2);
+                } else if (to.startsWith('0')) {
+                    altPhone = '62' + to.substring(1);
+                }
+
+                console.log(`Searching for device with phone '${to}' or '${altPhone}'`);
+
+                const db = drizzle(c.env.DB);
+                const devices = await db
+                    .select()
+                    .from(devicesTable)
+                    .where(or(
+                        eq(devicesTable.phoneNumber, to),
+                        eq(devicesTable.phoneNumber, altPhone)
+                    ))
+                    .limit(1);
+
+                if (devices.length > 0) {
+                    deviceId = devices[0].id; // Use the actual UUID
+                    console.log('Resolved Device ID:', deviceId);
+                } else {
+                    console.warn(`No device found for phone number: ${to} or ${altPhone}`);
+                }
+            } catch (err: any) {
+                console.error('Error resolving device by phone number:', err.message);
+            }
+        } else {
+            console.log('Using provided Device ID (UUID):', deviceId);
+        }
+
+        console.log('=== WAHA WEBHOOK RECEIVED ===');
+        console.log('Full Payload:', JSON.stringify(payload, null, 2));
+        console.log('Event Type:', event);
+        console.log('Session:', session);
+        console.log('Data.to:', data?.to);
+        console.log('Data.from:', data?.from);
+        console.log('Data.body:', data?.body);
+        console.log('Final Device ID for Flow Trigger:', deviceId);
+        console.log('=== END DEBUG ===');
+
+        // WAHA message format: body is directly in data.body
+        // Handle various WAHA event types: 'message', 'message.any', etc.
+        const isMessageEvent = event === 'message' || event?.startsWith('message.');
+
+        if (isMessageEvent && data?.body) {
+            console.log('✓ Message event detected, triggering flow...');
             // Trigger flow execution
             const { triggerFlow } = await import('@/engine/flow-trigger');
 
-            try {
-                await triggerFlow(
-                    c.env,
-                    session, // deviceId
-                    data.from, // contactPhone
-                    data.text.body // incomingMessage
-                );
-            } catch (error: any) {
-                console.error('Flow execution error:', error.message);
-            }
+            // Process in background to avoid webhook timeout
+            c.executionCtx.waitUntil(
+                (async () => {
+                    try {
+                        await triggerFlow(
+                            c.env,
+                            deviceId, // deviceId (from query param or session)
+                            data.from, // contactPhone
+                            data.body // incomingMessage - WAHA uses data.body directly
+                        );
+                    } catch (error: any) {
+                        console.error('Flow execution error:', error.message);
+                        console.error('Error stack:', error.stack);
+                    }
+                })()
+            );
+        } else {
+            console.log('✗ Skipping non-message event or missing body');
+            console.log('  - isMessageEvent:', isMessageEvent);
+            console.log('  - has body:', !!data?.body);
         }
 
         return c.json({
@@ -165,6 +228,21 @@ app.post('/api/webhook/cloud-api', async (c) => {
         }, 500);
     }
 });
+
+// ============================================
+// PROTECTED API ROUTES (require authentication)
+// These are registered AFTER webhooks to ensure webhooks bypass auth
+// ============================================
+
+app.route('/api/auth', auth);
+app.route('/api/devices', devices);
+app.route('/api/settings', settings); // Tenant settings
+app.route('/api', flows); // Flows are under /api/devices/:deviceId/flows
+app.route('/api', ai); // AI routes under /api/knowledge-base
+app.route('/api/settings/ai', aiSettings); // AI Settings
+app.route('/api/super-admin', superAdmin); // Super Admin Routes
+app.route('/api/media', media); // Media Routes
+app.route('/api/chats', chats); // Chat Routes
 
 // 404 handler
 app.notFound((c) => {

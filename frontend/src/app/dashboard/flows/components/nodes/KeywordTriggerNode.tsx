@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { Key, Plus, Trash2, Check, ChevronDown } from 'lucide-react';
+import { Key, Plus, Trash, Check, ChevronDown } from 'lucide-react';
 
 interface Keyword {
     term: string;
@@ -45,6 +45,16 @@ export const KeywordTriggerNode = memo(({ id, data, selected }: NodeProps) => {
                     <h3 className="text-sm font-semibold text-gray-800">Keyword Trigger</h3>
                     <p className="text-[10px] text-gray-500">Triggers when specific keywords match</p>
                 </div>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        useReactFlow().setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             {/* Content */}
@@ -120,7 +130,7 @@ export const KeywordTriggerNode = memo(({ id, data, selected }: NodeProps) => {
                                     onClick={() => removeKeyword(idx)}
                                     className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash className="w-3 h-3" />
                                 </button>
                             </div>
                         ))}

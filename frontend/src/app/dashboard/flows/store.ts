@@ -87,6 +87,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
             target: connection.target!,
             sourceHandle: connection.sourceHandle,
             targetHandle: connection.targetHandle,
+            type: 'deletable',
         };
         set({ edges: [...get().edges, newEdge] });
     },

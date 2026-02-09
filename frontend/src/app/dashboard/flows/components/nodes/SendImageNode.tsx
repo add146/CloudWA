@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { Image as ImageIcon, Upload } from 'lucide-react';
+import { Image as ImageIcon, Trash, Upload } from 'lucide-react';
 import { useState } from 'react';
 
 export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
-    const { updateNodeData } = useReactFlow();
+    const { updateNodeData, setNodes } = useReactFlow();
     const [isUploading, setIsUploading] = useState(false);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +53,16 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
                 <div>
                     <h3 className="text-sm font-semibold text-gray-800">Send Image</h3>
                 </div>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             <Handle type="target" position={Position.Left} className="!bg-violet-500 !w-3 !h-3 !border-2 !border-white" />

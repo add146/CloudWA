@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { FileText, Upload } from 'lucide-react';
+import { FileText, Trash, Upload } from 'lucide-react';
 import { useState } from 'react';
 
 export const SendPDFNode = memo(({ id, data, selected }: NodeProps) => {
-    const { updateNodeData } = useReactFlow();
+    const { updateNodeData, setNodes } = useReactFlow();
     const [isUploading, setIsUploading] = useState(false);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,10 +17,10 @@ export const SendPDFNode = memo(({ id, data, selected }: NodeProps) => {
 
         try {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
-            const res = await fetch(`${API_URL}/api/media/upload`, {
+            const res = await fetch(`${API_URL} /api/media / upload`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')} `
                 },
                 body: formData
             });
@@ -44,7 +44,7 @@ export const SendPDFNode = memo(({ id, data, selected }: NodeProps) => {
     };
 
     return (
-        <div className={`w-[250px] bg-white rounded-lg border shadow-sm ${selected ? 'border-red-500 ring-1 ring-red-200' : 'border-red-200'}`}>
+        <div className={`w - [250px] bg - white rounded - lg border shadow - sm ${selected ? 'border-red-500 ring-1 ring-red-200' : 'border-red-200'} `}>
             {/* Header */}
             <div className="flex items-center gap-2 p-3 border-b border-red-100 bg-red-50/50 rounded-t-lg">
                 <div className="p-1.5 rounded bg-red-100 text-red-600">
@@ -53,6 +53,16 @@ export const SendPDFNode = memo(({ id, data, selected }: NodeProps) => {
                 <div>
                     <h3 className="text-sm font-semibold text-gray-800">Send PDF</h3>
                 </div>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             <Handle type="target" position={Position.Left} className="!bg-red-500 !w-3 !h-3 !border-2 !border-white" />

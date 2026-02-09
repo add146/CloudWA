@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { Clock, User, List, Plus, Trash2 } from 'lucide-react';
+import { Clock, User, List, Plus, Trash } from 'lucide-react';
 
 export const DelayNode = memo(({ id, data, selected }: NodeProps) => {
     const { setNodes } = useReactFlow();
@@ -34,7 +34,17 @@ export const DelayNode = memo(({ id, data, selected }: NodeProps) => {
                 <div className="p-1.5 rounded bg-orange-50">
                     <Clock className="w-4 h-4 text-orange-600" />
                 </div>
-                <span className="font-semibold text-sm text-gray-700">⏱️ Delay</span>
+                <span className="font-semibold text-sm text-gray-700">Delay</span>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             {/* Random Toggle */}
@@ -55,8 +65,11 @@ export const DelayNode = memo(({ id, data, selected }: NodeProps) => {
                         <label className="text-[10px] text-gray-500">Min (s)</label>
                         <input
                             type="number"
-                            value={data.minDelay || 0}
-                            onChange={(e) => updateData('minDelay', parseFloat(e.target.value))}
+                            value={data.minDelay ?? ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                updateData('minDelay', val === '' ? undefined : parseFloat(val));
+                            }}
                             min={0}
                             className="w-full text-xs p-1.5 border border-gray-200 rounded-md focus:ring-1 focus:ring-orange-300"
                         />
@@ -65,8 +78,11 @@ export const DelayNode = memo(({ id, data, selected }: NodeProps) => {
                         <label className="text-[10px] text-gray-500">Max (s)</label>
                         <input
                             type="number"
-                            value={data.maxDelay || 0}
-                            onChange={(e) => updateData('maxDelay', parseFloat(e.target.value))}
+                            value={data.maxDelay ?? ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                updateData('maxDelay', val === '' ? undefined : parseFloat(val));
+                            }}
                             min={0}
                             className="w-full text-xs p-1.5 border border-gray-200 rounded-md focus:ring-1 focus:ring-orange-300"
                         />
@@ -77,8 +93,11 @@ export const DelayNode = memo(({ id, data, selected }: NodeProps) => {
                     <label className="text-[10px] text-gray-500">Delay (seconds)</label>
                     <input
                         type="number"
-                        value={data.delay || 0}
-                        onChange={(e) => updateData('delay', parseFloat(e.target.value))}
+                        value={data.delay ?? ''}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            updateData('delay', val === '' ? undefined : parseFloat(val));
+                        }}
                         min={0}
                         className="w-full text-xs p-1.5 border border-gray-200 rounded-md focus:ring-1 focus:ring-orange-300"
                     />
@@ -126,6 +145,16 @@ export const HumanTakeoverNode = memo(({ id, data, selected }: NodeProps) => {
                     <User className="w-4 h-4 text-rose-600" />
                 </div>
                 <span className="font-semibold text-sm text-gray-700">👤 Human Takeover</span>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             {/* Message to send when takeover starts */}
@@ -195,6 +224,16 @@ export const ListNode = memo(({ id, data, selected }: NodeProps) => {
                     <List className="w-4 h-4 text-cyan-600" />
                 </div>
                 <span className="font-semibold text-sm text-gray-700">📋 List Message</span>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             {/* Title */}
@@ -261,7 +300,7 @@ export const ListNode = memo(({ id, data, selected }: NodeProps) => {
                             onClick={() => removeItem(idx)}
                             className="p-0.5 text-red-400 hover:text-red-600"
                         >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash className="w-3 h-3" />
                         </button>
                         <Handle
                             type="source"

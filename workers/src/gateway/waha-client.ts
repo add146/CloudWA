@@ -393,4 +393,108 @@ export class WAHAClient {
 
         return await response.json();
     }
+
+    /**
+     * Start typing indicator
+     * Shows "typing..." status to the recipient
+     */
+    async startTyping(sessionName: string, chatId: string): Promise<void> {
+        const formattedChatId = chatId.includes('@') ? chatId : `${chatId}@c.us`;
+        console.log(`[WAHAClient] Starting typing for ${formattedChatId} on session ${sessionName}`);
+
+        try {
+            const response = await fetch(
+                `${this.config.baseUrl}/api/startTyping`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'X-Api-Key': this.config.apiKey,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session: sessionName,
+                        chatId: formattedChatId,
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                const text = await response.text();
+                console.warn(`[WAHAClient] Failed to start typing: ${response.status} ${response.statusText}`, text);
+            } else {
+                console.log('[WAHAClient] Typing started successfully');
+            }
+        } catch (error) {
+            console.error('[WAHAClient] Error starting typing:', error);
+        }
+    }
+
+    /**
+     * Stop typing indicator
+     */
+    async stopTyping(sessionName: string, chatId: string): Promise<void> {
+        const formattedChatId = chatId.includes('@') ? chatId : `${chatId}@c.us`;
+        console.log(`[WAHAClient] Stopping typing for ${formattedChatId} on session ${sessionName}`);
+
+        try {
+            const response = await fetch(
+                `${this.config.baseUrl}/api/stopTyping`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'X-Api-Key': this.config.apiKey,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session: sessionName,
+                        chatId: formattedChatId,
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                const text = await response.text();
+                console.warn(`[WAHAClient] Failed to stop typing: ${response.status} ${response.statusText}`, text);
+            } else {
+                console.log('[WAHAClient] Typing stopped successfully');
+            }
+        } catch (error) {
+            console.error('[WAHAClient] Error stopping typing:', error);
+        }
+    }
+
+    /**
+     * Mark chat as seen (Blue Ticks)
+     */
+    async sendSeen(sessionName: string, chatId: string): Promise<void> {
+        const formattedChatId = chatId.includes('@') ? chatId : `${chatId}@c.us`;
+        // console.log(`[WAHAClient] Marking chat as seen for ${formattedChatId} on session ${sessionName}`);
+
+        try {
+            const response = await fetch(
+                `${this.config.baseUrl}/api/sendSeen`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'X-Api-Key': this.config.apiKey,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session: sessionName,
+                        chatId: formattedChatId,
+                    }),
+                }
+            );
+
+            // WAHA might return 200 OK or 201 Created
+            if (!response.ok) {
+                const text = await response.text();
+                // console.warn(`[WAHAClient] Failed to send seen: ${response.status} ${response.statusText}`, text);
+                throw new Error(`WAHA API error: ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('[WAHAClient] Error sending seen:', error);
+            // Don't throw, just log. It's not critical.
+        }
+    }
 }

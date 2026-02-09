@@ -43,33 +43,47 @@ devicesRouter.get('/', async (c) => {
         if (wahaBaseUrl && wahaApiKey) {
             try {
                 const waha = new WAHAClient({ baseUrl: wahaBaseUrl, apiKey: wahaApiKey });
-                const session = await waha.getSessionStatus('default');
-                wahaStatus = session.status.toLowerCase();
+                // Check all sessions
+                // For now, we'll just check if there's any session or if specific devices are connected
+                // TODO: Optimize by fetching generic GET /api/sessions
 
-                // Extract phone number from session.me.id (format: "6285232364446@c.us")
-                if (session.me?.id) {
-                    wahaPhoneNumber = session.me.id.replace('@c.us', '');
-                }
+                // We'll skip global check and check per-device in the loop below
+                wahaStatus = 'unknown'; // Disable global check dependence
 
                 // If WAHA is WORKING, update any device that's still scanning or missing phone
-                if (session.status === 'WORKING') {
-                    for (const device of deviceList) {
-                        if (device.gatewayType === 'waha') {
-                            const needsUpdate = device.sessionStatus !== 'connected' ||
-                                (wahaPhoneNumber && !device.phoneNumber);
+                // Check status for each device
+                for (const device of deviceList) {
+                    if (device.gatewayType === 'waha') {
+                        try {
+                            const session = await waha.getSessionStatus('default');
+                            const currentStatus = session.status?.toLowerCase() || 'stopped';
 
-                            if (needsUpdate) {
-                                await db
-                                    .update(devices)
-                                    .set({
-                                        sessionStatus: 'connected',
-                                        phoneNumber: wahaPhoneNumber || device.phoneNumber,
-                                        connectedAt: device.connectedAt || new Date().toISOString()
-                                    })
-                                    .where(eq(devices.id, device.id));
-                                device.sessionStatus = 'connected';
-                                if (wahaPhoneNumber) device.phoneNumber = wahaPhoneNumber;
+                            let phoneNumber = null;
+                            if (session.me?.id) {
+                                phoneNumber = session.me.id.replace('@c.us', '');
                             }
+
+                            if ((session.status as string) === 'WORKING') {
+                                // Update DB
+                                await db.update(devices).set({
+                                    sessionStatus: 'connected',
+                                    phoneNumber: phoneNumber || device.phoneNumber,
+                                    connectedAt: device.connectedAt || new Date().toISOString()
+                                }).where(eq(devices.id, device.id));
+
+                                device.sessionStatus = 'connected';
+                                if (phoneNumber) device.phoneNumber = phoneNumber;
+                            } else {
+                                // If status changed from connected to something else (e.g. STOPPED)
+                                if (device.sessionStatus === 'connected' && session.status !== 'WORKING') {
+                                    await db.update(devices).set({
+                                        sessionStatus: currentStatus
+                                    }).where(eq(devices.id, device.id));
+                                    device.sessionStatus = currentStatus;
+                                }
+                            }
+                        } catch (err) {
+                            // Session likely doesn't exist
                         }
                     }
                 }
@@ -158,33 +172,36 @@ devicesRouter.post('/', async (c) => {
                     apiKey: wahaApiKey,
                 });
 
-                // WAHA Core (free) only supports 'default' session name
+                // WAHA Core (free) ONLY supports 'default' session name
                 const wahaSessionName = 'default';
 
                 // Start session with webhook pointing back to our Workers
-                const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha`;
+                // deviceId in query param is how we identify which device this session belongs to
+                const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha?deviceId=${device.id}`;
 
                 try {
-                    // First, try to stop/delete any existing session to ensure fresh start with new config
+                    // First, try to stop any existing session
                     try {
                         await waha.stopSession(wahaSessionName);
-                        console.log('Stopped existing session');
-                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
-                    } catch (stopError: any) {
-                        // Session might not exist, that's OK
-                        console.log('No existing session to stop:', stopError.message);
-                    }
+                    } catch (e) { /* Session might not exist */ }
+
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
 
                     // Now start fresh session with store.enabled = true config
+                    console.log('Starting session: default');
                     await waha.startSession(wahaSessionName, webhookUrl);
-                    console.log('Started new session with store enabled');
+                    console.log('Session started successfully');
                 } catch (startError: any) {
-                    // If session already exists and won't stop, that's OK - continue to get QR
-                    console.log('Start session result:', startError.message);
+                    console.error('Session start error:', startError.message);
+                    // Return error to user instead of silently continuing
+                    return c.json({
+                        success: false,
+                        error: `Failed to start WAHA session: ${startError.message}`
+                    }, 500);
                 }
 
                 // Give WAHA a moment to generate QR
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Increased timeout
 
                 // Try to get QR code
                 try {
@@ -206,14 +223,15 @@ devicesRouter.post('/', async (c) => {
                         },
                     });
                 } catch (qrError: any) {
-                    // QR not ready yet, return pending status
+                    console.error('QR code error:', qrError.message);
+                    // Return pending status with error details
                     return c.json({
                         success: true,
                         data: {
                             id: device.id,
                             displayName: device.displayName,
                             sessionStatus: 'starting',
-                            message: 'Session starting, please refresh to get QR code',
+                            message: `QR not ready: ${qrError.message}. Please refresh the page.`,
                         },
                     });
                 }
@@ -370,6 +388,76 @@ devicesRouter.get('/:id', async (c) => {
 });
 
 // ============================================
+// REFRESH SESSION (Fix Webhook URL)
+// ============================================
+
+devicesRouter.post('/:id/refresh', async (c) => {
+    try {
+        const user = c.get('user');
+        const deviceId = c.req.param('id');
+        const db = drizzle(c.env.DB);
+
+        const [device] = await db
+            .select()
+            .from(devices)
+            .where(and(
+                eq(devices.id, deviceId),
+                eq(devices.tenantId, user.tenantId)
+            ))
+            .limit(1);
+
+        if (!device) {
+            return c.json({ success: false, error: 'Device not found' }, 404);
+        }
+
+        if (device.gatewayType === 'waha') {
+            const [tenant] = await db
+                .select()
+                .from(tenants)
+                .where(eq(tenants.id, user.tenantId))
+                .limit(1);
+
+            const settings = tenant?.settings ? JSON.parse(tenant.settings) : {};
+            const wahaConfig = settings.waha || {};
+            const wahaBaseUrl = wahaConfig.baseUrl || c.env.WAHA_BASE_URL;
+            const wahaApiKey = wahaConfig.apiKey || c.env.WAHA_API_KEY;
+
+            if (wahaBaseUrl && wahaApiKey) {
+                const waha = new WAHAClient({
+                    baseUrl: wahaBaseUrl,
+                    apiKey: wahaApiKey,
+                });
+
+                // WAHA Core only supports 'default' session
+                const wahaSessionName = 'default';
+                const webhookUrl = `https://${c.req.header('host')}/api/webhook/waha?deviceId=${device.id}`;
+
+                try {
+                    // Force restart session with new URL
+                    // Cleanup legacy 'default' just in case
+                    try { await waha.stopSession('default'); } catch (e) { }
+
+                    try {
+                        await waha.stopSession(wahaSessionName);
+                    } catch (e) { }
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await waha.startSession(wahaSessionName, webhookUrl);
+
+                    return c.json({ success: true, message: 'Session refreshed with new configuration' });
+                } catch (error: any) {
+                    return c.json({ success: false, error: 'Failed to refresh WAHA session: ' + error.message });
+                }
+            }
+        }
+
+        return c.json({ success: true, message: 'Refresh not applicable for this gateway' });
+    } catch (error: any) {
+        return c.json({ success: false, error: error.message }, 500);
+    }
+});
+
+// ============================================
 // SEND MESSAGE (MANUAL)
 // ============================================
 
@@ -430,7 +518,7 @@ devicesRouter.post('/:id/send', async (c) => {
                 apiKey: wahaApiKey,
             });
 
-            // WAHA Core (free) only supports 'default' session name
+            // Send via WAHA using 'default' session
             const result = await waha.sendMessage({
                 session: 'default',
                 chatId,
@@ -535,7 +623,7 @@ devicesRouter.delete('/:id', async (c) => {
                 });
 
                 try {
-                    // WAHA Core (free) only supports 'default' session name
+                    // WAHA Core only supports 'default' session
                     await waha.deleteSession('default');
                 } catch (error) {
                     console.error('Failed to delete WAHA session:', error);

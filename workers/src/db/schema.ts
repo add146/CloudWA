@@ -81,7 +81,8 @@ export const devices = sqliteTable('devices', {
 
 export const flows = sqliteTable('flows', {
     id: id(),
-    deviceId: text('device_id').notNull().references(() => devices.id, { onDelete: 'cascade' }),
+    tenantId: text('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }), // Link flow to tenant directly
+    deviceId: text('device_id').references(() => devices.id, { onDelete: 'set null' }), // Nullable - allows orphaned flows
     name: text('name').notNull(),
     description: text('description'),
     triggerKeywords: text('trigger_keywords').notNull(), // JSON array

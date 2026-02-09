@@ -14,7 +14,8 @@ import {
     Key,
     FileText,
     Video,
-    Image as ImageIcon
+    Image as ImageIcon,
+    CheckCheck
 } from 'lucide-react';
 
 const nodeTypes = [
@@ -31,6 +32,7 @@ const nodeTypes = [
     { type: 'send_video', label: 'Send Video', icon: Video, desc: 'Send a video file', color: 'text-pink-600', borderColor: 'border-pink-200 hover:border-pink-500' },
     { type: 'send_image', label: 'Send Image', icon: ImageIcon, desc: 'Send an image', color: 'text-violet-600', borderColor: 'border-violet-200 hover:border-violet-500' },
     { type: 'quick_reply', label: 'Quick Reply', icon: MessageSquare, desc: 'Message with buttons', color: 'text-purple-600', borderColor: 'border-purple-200 hover:border-purple-500' },
+    { type: 'mark_read', label: 'Mark Read', icon: CheckCheck, desc: 'Send blue ticks', color: 'text-sky-600', borderColor: 'border-sky-200 hover:border-sky-500' },
 ];
 
 export function NodePalette() {

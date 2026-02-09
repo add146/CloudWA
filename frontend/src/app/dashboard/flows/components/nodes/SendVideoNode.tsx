@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { Video, Upload } from 'lucide-react';
+import { Trash, Video, Upload } from 'lucide-react';
 import { useState } from 'react';
 
 export const SendVideoNode = memo(({ id, data, selected }: NodeProps) => {
-    const { updateNodeData } = useReactFlow();
+    const { updateNodeData, setNodes } = useReactFlow();
     const [isUploading, setIsUploading] = useState(false);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +53,16 @@ export const SendVideoNode = memo(({ id, data, selected }: NodeProps) => {
                 <div>
                     <h3 className="text-sm font-semibold text-gray-800">Send Video</h3>
                 </div>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setNodes((nodes) => nodes.filter((n) => n.id !== id));
+                    }}
+                    className="ml-auto p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                    <Trash className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             <Handle type="target" position={Position.Left} className="!bg-pink-500 !w-3 !h-3 !border-2 !border-white" />

@@ -24,6 +24,9 @@ import { QuickReplyNode } from './nodes/QuickReplyNode';
 import { SendPDFNode } from './nodes/SendPDFNode';
 import { SendVideoNode } from './nodes/SendVideoNode';
 import { SendImageNode } from './nodes/SendImageNode';
+import { MarkReadNode } from './nodes/MarkReadNode';
+
+import DeletableEdge from './edges/DeletableEdge';
 
 const nodeTypes: NodeTypes = {
     start: StartNode,
@@ -39,6 +42,11 @@ const nodeTypes: NodeTypes = {
     send_pdf: SendPDFNode,
     send_video: SendVideoNode,
     send_image: SendImageNode,
+    mark_read: MarkReadNode,
+};
+
+const edgeTypes = {
+    deletable: DeletableEdge,
 };
 
 export function FlowCanvas() {
@@ -119,6 +127,7 @@ export function FlowCanvas() {
                 onNodeClick={handleNodeClick}
                 onPaneClick={handlePaneClick}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 isValidConnection={isValidConnection}
                 connectionMode={ConnectionMode.Loose}
                 fitView
@@ -137,6 +146,7 @@ export function FlowCanvas() {
                             ai: '#6366f1',
                             delay: '#f97316',
                             human_takeover: '#ef4444',
+                            mark_read: '#0284c7', // sky-600
                         };
                         return colors[node.type || ''] || '#6b7280';
                     }}

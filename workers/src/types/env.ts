@@ -30,6 +30,7 @@ export interface Env {
 
     // Webhook verification
     WEBHOOK_VERIFY_TOKEN?: string;
+    WHATSAPP_APP_SECRET?: string;
 }
 
 export interface UserPayload {
