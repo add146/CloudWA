@@ -1,7 +1,4 @@
-import { memo } from 'react';
-import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
-import { Image as ImageIcon, Trash, Upload } from 'lucide-react';
-import { useState } from 'react';
+import imageCompression from 'browser-image-compression';
 
 export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
     const { updateNodeData, setNodes } = useReactFlow();
@@ -12,10 +9,24 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
         if (!file) return;
 
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
 
         try {
+            console.log(`[SendImageNode] Original file size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+            // Compress image to 60% quality (0.6)
+            const options = {
+                maxSizeMB: 1,             // Max size 1MB
+                maxWidthOrHeight: 1920,   // Max dimension
+                useWebWorker: true,
+                initialQuality: 0.6,      // 60% quality
+            };
+
+            const compressedFile = await imageCompression(file, options);
+            console.log(`[SendImageNode] Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+
+            const formData = new FormData();
+            formData.append('file', compressedFile);
+
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
             const res = await fetch(`${API_URL}/api/media/upload`, {
                 method: 'POST',
@@ -28,6 +39,19 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
 
             if (result.success && result.data) {
                 const fullUrl = `${API_URL}/api/media/${result.data.key}`;
+                // Setup preview
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    updateNodeData(id, {
+                        fileUrl: fullUrl,
+                        fileName: result.data.filename,
+                        fileType: result.data.contentType,
+                        // temporary preview from base64 if needed, but using URL is better
+                    });
+                };
+                reader.readAsDataURL(compressedFile);
+
+                // For now just use the URL
                 updateNodeData(id, {
                     fileUrl: fullUrl,
                     fileName: result.data.filename,
