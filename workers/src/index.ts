@@ -229,12 +229,16 @@ app.post('/api/webhook/cloud-api', async (c) => {
     }
 });
 
+import debugRouter from '@/routes/debug';
+
 // ============================================
 // PUBLIC ROUTES (no authentication required)
 // Media GET endpoints must be public so WAHA can download files
+// Debug endpoints for testing
 // ============================================
 
 app.route('/api/media', media); // Media Routes - GET is public, POST requires auth
+app.route('/api/debug', debugRouter); // Debug routes
 
 // ============================================
 // PROTECTED API ROUTES (require authentication)
