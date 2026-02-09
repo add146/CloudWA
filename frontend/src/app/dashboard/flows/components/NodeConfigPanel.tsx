@@ -229,10 +229,11 @@ function AIConfig({ node, onUpdate }: any) {
                         // AND it is enabled (tenantSetting.isEnabled !== false)
                         const activeProviders = data.data.filter((p: any) => {
                             const isEnabled = p.tenantSetting?.isEnabled === true;
-
                             // Check for free providers or those with keys
                             const isFree = p.provider === 'workers_ai' || p.displayName.includes('(Free)');
                             const hasKey = p.tenantSetting?.hasApiKey;
+
+                            console.log(`[AI Filter] ${p.displayName}: Enabled=${isEnabled}, Free=${isFree}, HasKey=${hasKey} -> Keep=${isEnabled && (isFree || hasKey)}`);
 
                             return isEnabled && (isFree || hasKey);
                         }).map((p: any) => ({
