@@ -251,6 +251,8 @@ export class WAHAClient {
         // Extract URL from file object if needed
         const fileUrl = typeof params.file === 'string' ? params.file : params.file.url;
 
+        console.log('[WAHAClient] sendImage - URL:', fileUrl, 'Caption:', params.caption);
+
         const response = await fetch(`${this.config.baseUrl}/api/sendImage`, {
             method: 'POST',
             headers: {
@@ -268,8 +270,8 @@ export class WAHAClient {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[WAHAClient] sendImage error:', errorText);
-            throw new Error(`WAHA API error: ${response.statusText}`);
+            console.error('[WAHAClient] sendImage error - Status:', response.status, 'Response:', errorText);
+            throw new Error(`WAHA API error: ${response.statusText} - ${errorText}`);
         }
         return await response.json();
     }
