@@ -105,12 +105,23 @@ settingsRouter.get('/ai-providers', async (c) => {
         const { tenantAiSettings, aiProviders } = await import('@/db/schema');
         const { and } = await import('drizzle-orm');
 
-        // Get all active AI providers for this tenant
-        const configuredProviders = await db
+        console.log(`[ai-providers] Request from user:`, JSON.stringify(user));
+
+        // Get tenant's configured AI providers with their settings
+        // Get all active system providers
+        const systemProviders = await db
+            .select()
+            .from(aiProviders)
+            .where(eq(aiProviders.isActive, true));
+
+        // Get tenant's specific settings
+        const tenantSettings = await db
             .select({
                 provider: aiProviders.provider,
                 providerId: aiProviders.id,
                 apiKey: tenantAiSettings.apiKey,
+                config: tenantAiSettings.config,
+                tenantId: tenantAiSettings.tenantId,
             })
             .from(tenantAiSettings)
             .innerJoin(aiProviders, eq(tenantAiSettings.aiProviderId, aiProviders.id))
@@ -118,6 +129,27 @@ settingsRouter.get('/ai-providers', async (c) => {
                 eq(tenantAiSettings.tenantId, user.tenantId),
                 eq(aiProviders.isActive, true)
             ));
+
+        // Create a map of configured providers
+        const configuredMap = new Map(tenantSettings.map(s => [s.providerId, s]));
+
+        // Merge: System providers + Tenant overrides
+        const mergedProviders = systemProviders.map(sys => {
+            const tenantConfig = configuredMap.get(sys.id);
+            // If tenant has config, use it. If not, use system default if it has a key (like binding)
+            // For workers_ai, apiKey is 'binding', so it effectively has a key.
+            const hasKey = tenantConfig?.apiKey || sys.apiKey;
+
+            return {
+                id: sys.id,
+                name: sys.displayName,
+                provider: sys.provider,
+                models: [], // Will be filled below
+                hasKey: !!hasKey
+            };
+        }).filter(p => p.hasKey); // Only return providers that are usable (have key either from system or tenant)
+
+
 
         // Define available models per provider
         const providerModels: Record<string, string[]> = {
@@ -144,6 +176,16 @@ settingsRouter.get('/ai-providers', async (c) => {
                 'gemini-1.5-flash',
                 'gemini-1.5-flash-8b'
             ],
+            'gemini': [
+                'gemini-2.0-flash',
+                'gemini-2.5-flash-preview-05-20',
+                'gemini-2.5-pro-preview-06-05',
+                'gemini-2.5-pro-preview-05-06',
+                'gemini-2.5-flash-preview-04-17',
+                'gemini-2.0-flash-lite',
+                'gemini-1.5-flash',
+                'gemini-1.5-flash-8b'
+            ],
             'deepseek': [
                 'deepseek-v3-0324',
                 'deepseek-v3-0324-free',
@@ -156,31 +198,34 @@ settingsRouter.get('/ai-providers', async (c) => {
             'meta': [
                 'llama-3.3-70b-instruct'
             ],
+            'workers_ai': [
+                '@cf/meta/llama-3-8b-instruct',
+                '@cf/meta/llama-3-70b-instruct',
+                '@cf/mistral/mistral-7b-instruct-v0.1'
+            ],
             'xai': [
                 'grok-3-beta'
             ]
         };
 
-        // Build response with only configured providers
-        const availableProviders = configuredProviders.map(cp => ({
-            id: cp.provider,
-            name: cp.provider.charAt(0).toUpperCase() + cp.provider.slice(1),
-            models: providerModels[cp.provider] || [],
-            configured: !!cp.apiKey
+        // Build response
+        const availableProviders = mergedProviders.map(mp => ({
+            id: mp.id,
+            name: mp.name, // Display Name from DB
+            models: providerModels[mp.provider] || [],
+            configured: mp.hasKey,
+            provider: mp.provider
         }));
 
-        // Remove duplicates
-        const uniqueProviders = availableProviders.reduce((acc: any[], current) => {
-            const exists = acc.find(p => p.id === current.id);
-            if (!exists) {
-                acc.push(current);
-            }
-            return acc;
-        }, []);
+        // Remove duplicates (by provider type, or keep all distinct provider IDs?)
+        // We might have multiple OpenAI providers (system vs tenant custom)?
+        // For now, let's keep all valid ones.
+        // Actually, logic above already merged system + tenant into one entry per provider ID.
+
 
         return c.json({
             success: true,
-            data: uniqueProviders,
+            data: availableProviders,
         });
     } catch (error: any) {
         console.error('Get AI providers error:', error);

@@ -5,6 +5,7 @@
  */
 
 import type { Env } from '@/types/env';
+import type { AIProvider } from '@/ai/providers/base';
 
 export interface FlowNode {
     id: string;
@@ -39,6 +40,7 @@ export interface FlowExecutionResult {
     nextNodeId: string | null;
     shouldWait: boolean; // true if waiting for user input
     completed: boolean;
+    delaySeconds?: number; // if set, execution should delay with typing indicator
 }
 
 export class FlowExecutor {
@@ -316,15 +318,14 @@ export class FlowExecutor {
 
         const nextNode = this.getNextNode(node.id);
 
-        // TODO: Implement actual delayed execution using Queues or Durable Objects Alarms
-        // For now logging it to verify logic is triggered
-        console.log(`Delay node: ${delaySeconds}s (Random: ${!!node.data.random})`);
+        console.log(`Delay node: ${delaySeconds}s (Random: ${!!node.data.random}). Next: ${nextNode?.id || 'END'}`);
 
         return {
             messages: [],
             nextNodeId: nextNode?.id || null,
-            shouldWait: true, // wait for delay to complete
-            completed: false,
+            shouldWait: false, // Don't wait for user input, just delay
+            completed: !nextNode,
+            delaySeconds, // Flow trigger will handle typing + delay
         };
     }
 
@@ -415,14 +416,28 @@ export class FlowExecutor {
      * Get next node from current node
      */
     private getNextNode(currentNodeId: string, sourceHandle?: string): FlowNode | null {
+        // Debugging flow connection issues
+        // console.log(`[DEBUG] getNextNode: Node=${currentNodeId}, Handle=${sourceHandle}`);
+
         const edge = this.flowGraph.edges.find(e =>
             e.source === currentNodeId &&
             (!sourceHandle || e.sourceHandle === sourceHandle)
         );
 
-        if (!edge) return null;
+        if (!edge) {
+            console.log(`[DEBUG] No edge found for ${currentNodeId} (Handle: ${sourceHandle}). Available edges from this node:`,
+                JSON.stringify(this.flowGraph.edges.filter(e => e.source === currentNodeId))
+            );
+            return null;
+        }
 
-        return this.flowGraph.nodes.find(n => n.id === edge.target) || null;
+        const node = this.flowGraph.nodes.find(n => n.id === edge.target);
+        if (!node) {
+            console.log(`[DEBUG] Edge found to target ${edge.target} but node is missing in graph!`);
+            return null;
+        }
+
+        return node;
     }
 
     /**
@@ -442,7 +457,7 @@ export class FlowExecutor {
 
         try {
             const { drizzle } = await import('drizzle-orm/d1');
-            const { eq, and } = await import('drizzle-orm');
+            const { eq, and, or } = await import('drizzle-orm');
             const { devices: devicesTable, tenantAiSettings, aiProviders } = await import('@/db/schema');
             const { OpenAIProvider } = await import('@/ai/providers/openai');
 
@@ -495,7 +510,12 @@ export class FlowExecutor {
                     .select()
                     .from(aiProviders)
                     .where(and(
-                        eq(aiProviders.provider, requestedProvider),
+                        or(
+                            eq(aiProviders.provider, requestedProvider),
+                            // If requested 'workers_ai' but we only have 'hybrid' in DB, or vice versa
+                            (requestedProvider === 'workers_ai' ? eq(aiProviders.provider, 'hybrid') : undefined),
+                            (requestedProvider === 'hybrid' ? eq(aiProviders.provider, 'workers_ai') : undefined)
+                        ),
                         eq(aiProviders.isActive, true)
                     ))
                     .limit(1);
@@ -514,11 +534,41 @@ export class FlowExecutor {
             }
 
             // Instantiate Provider
-            let provider;
-            if (requestedProvider === 'openai') {
-                provider = new OpenAIProvider(apiKey, modelId || 'gpt-4o');
-            } else {
-                return `Error: Provider ${requestedProvider} not supported yet.`;
+            let provider: AIProvider;
+
+            // Log what we found
+            console.log(`[FlowExecutor] AI Provider Selection: Requested=${requestedProvider}, Model=${modelId}, HasKey=${!!apiKey}`);
+
+            switch (requestedProvider) {
+                case 'openai':
+                    provider = new OpenAIProvider(apiKey, modelId || 'gpt-4o');
+                    break;
+
+                case 'gemini':
+                    const { GeminiProvider } = await import('@/ai/providers/gemini');
+                    provider = new GeminiProvider(apiKey, modelId || 'gemini-1.5-flash');
+                    break;
+
+                case 'workers_ai':
+                case 'hybrid': // Alias for workers_ai / hybrid
+                    const { WorkersAIProvider } = await import('@/ai/providers/workers-ai');
+                    // Pass env.AI binding AND apiKey (if present)
+                    // If apiKey is present (AccountID:Token), the provider will use REST API
+                    // If apiKey is missing (global default), it will use the binding
+                    provider = new WorkersAIProvider(this.env.AI, modelId, apiKey);
+                    break;
+
+                default:
+                    // Fallback to OpenAI if unknown, or error?
+                    // Let's try to be smart. If apiKey starts with 'sk-', it's probably OpenAI.
+                    if (apiKey.startsWith('sk-')) {
+                        provider = new OpenAIProvider(apiKey, modelId || 'gpt-4o');
+                    } else if (apiKey.startsWith('AIza')) {
+                        const { GeminiProvider } = await import('@/ai/providers/gemini');
+                        provider = new GeminiProvider(apiKey, modelId || 'gemini-1.5-flash');
+                    } else {
+                        return `Error: Provider ${requestedProvider} not configured or supported.`;
+                    }
             }
 
             // Generate
@@ -531,11 +581,6 @@ export class FlowExecutor {
             // TODO: Handle intentions if defined
             // If nodeData.intentions is populated, we should include them in the system prompt
             // For intent classification, we can add: "Classify user intent as one of: [intention names]"
-
-            // TODO: Pass context to provider if supported (OpenAI chat history)
-            // Current OpenAIProvider implementation splits system prompt and user prompt.
-            // We need to enhance OpenAIProvider to accept history or handle it here.
-            // For now, let's just send the user message and system prompt.
 
             return await provider.generateText(userPrompt, {
                 systemPrompt: systemPrompt,
