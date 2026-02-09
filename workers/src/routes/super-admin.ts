@@ -101,4 +101,33 @@ superAdmin.post('/ai-providers', async (c) => {
     }
 });
 
+// PATCH /api/super-admin/ai-providers/:id
+superAdmin.patch('/ai-providers/:id', async (c) => {
+    try {
+        const providerId = c.req.param('id');
+        const body = await c.req.json();
+        const db = drizzle(c.env.DB);
+
+        // Build update object dynamically
+        const updates: any = {};
+        if (body.isActive !== undefined) updates.isActive = body.isActive;
+        if (body.apiKey !== undefined) updates.apiKey = body.apiKey;
+        if (body.modelId !== undefined) updates.modelId = body.modelId;
+
+        const [updatedProvider] = await db
+            .update(aiProviders)
+            .set(updates)
+            .where(eq(aiProviders.id, providerId))
+            .returning();
+
+        if (!updatedProvider) {
+            return c.json({ success: false, error: 'Provider not found' }, 404);
+        }
+
+        return c.json({ success: true, data: updatedProvider });
+    } catch (error) {
+        return c.json({ success: false, error: 'Failed to update AI provider' }, 500);
+    }
+});
+
 export default superAdmin;

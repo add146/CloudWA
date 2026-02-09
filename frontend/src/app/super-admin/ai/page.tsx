@@ -2,20 +2,49 @@
 
 import { useEffect, useState } from 'react';
 
-export default function AIProvidersPage() {
-    const [providers, setProviders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+interface AIProvider {
+    id: string;
+    provider: 'openai' | 'gemini' | 'workers_ai' | 'hybrid';
+    displayName: string;
+    modelId: string;
+    apiKey: string;
+    isActive: boolean;
+}
 
-    // New Provider Form State
-    const [newProvider, setNewProvider] = useState({
-        name: '',
-        provider: 'openai',
-        apiKey: '',
-        modelId: ''
-    });
+export default function AIProvidersPage() {
+    const [providers, setProviders] = useState<AIProvider[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState<string | null>(null);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cloudwa-flow.khibroh.workers.dev';
+
+    // Provider configurations
+    const providerConfigs = {
+        openai: {
+            name: 'OpenAI',
+            defaultModel: 'gpt-4o',
+            needsApiKey: true,
+            description: 'GPT-4, GPT-3.5 Turbo models'
+        },
+        gemini: {
+            name: 'Google Gemini',
+            defaultModel: 'gemini-1.5-flash',
+            needsApiKey: true,
+            description: 'Gemini 1.5 Flash, Pro models'
+        },
+        hybrid: {
+            name: 'Hybrid (Workers AI)',
+            defaultModel: '@cf/meta/llama-3.1-8b-instruct',
+            needsApiKey: true,
+            description: 'Use custom account/token for Workers AI'
+        },
+        workers_ai: {
+            name: 'Cloudflare AI (Free)',
+            defaultModel: '@cf/meta/llama-3.1-8b-instruct',
+            needsApiKey: false,
+            description: 'Free Llama 3.1, Gemma models via binding'
+        }
+    };
 
     const fetchProviders = async () => {
         try {
@@ -41,148 +70,152 @@ export default function AIProvidersPage() {
         fetchProviders();
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleToggle = async (providerId: string, currentState: boolean) => {
+        setSaving(providerId);
         try {
             const token = localStorage.getItem('super_admin_token');
-            const res = await fetch(`${API_URL}/api/super-admin/ai-providers`, {
-                method: 'POST',
+            const res = await fetch(`${API_URL}/api/super-admin/ai-providers/${providerId}`, {
+                method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(newProvider)
+                body: JSON.stringify({ isActive: !currentState })
             });
 
             if (res.ok) {
-                setShowModal(false);
-                setNewProvider({ name: '', provider: 'openai', apiKey: '', modelId: '' });
-                fetchProviders(); // Refresh list
+                fetchProviders();
             } else {
-                alert('Failed to add provider');
+                alert('Failed to update provider');
             }
         } catch (error) {
-            alert('Error adding provider');
+            alert('Error updating provider');
+        } finally {
+            setSaving(null);
         }
     };
 
+    const handleSaveApiKey = async (providerId: string, apiKey: string) => {
+        setSaving(providerId);
+        try {
+            const token = localStorage.getItem('super_admin_token');
+            const res = await fetch(`${API_URL}/api/super-admin/ai-providers/${providerId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ apiKey })
+            });
+
+            if (res.ok) {
+                alert('API Key saved successfully!');
+                fetchProviders();
+            } else {
+                alert('Failed to save API key');
+            }
+        } catch (error) {
+            alert('Error saving API key');
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    if (loading) {
+        return <div className="text-center py-12">Loading...</div>;
+    }
+
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">AI Providers</h1>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                >
-                    + Add Provider
-                </button>
+        <div className="max-w-5xl mx-auto">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Providers</h1>
+                <p className="text-gray-600">Configure AI providers available for your tenants</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Display Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default Model</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {loading ? (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Loading...</td>
-                            </tr>
-                        ) : providers.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">No providers configured</td>
-                            </tr>
-                        ) : (
-                            providers.map((p) => (
-                                <tr key={p.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.displayName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{p.provider}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.modelId || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                            {p.isActive ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <div className="space-y-4">
+                {Object.entries(providerConfigs).map(([providerType, config]) => {
+                    const provider = providers.find(p => p.provider === providerType);
+                    const [apiKeyInput, setApiKeyInput] = useState(provider?.apiKey || '');
 
-            {/* Add Provider Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">Add AI Provider</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Display Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="mt-1 w-full border rounded-md p-2"
-                                    value={newProvider.name}
-                                    onChange={e => setNewProvider({ ...newProvider, name: e.target.value })}
-                                />
+                    return (
+                        <div key={providerType} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-lg font-semibold text-gray-900">{config.name}</h3>
+                                            <span className="text-sm text-gray-500">{config.defaultModel}</span>
+                                            {provider?.isActive && (
+                                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    Active
+                                                </span>
+                                            )}
+                                            {!provider?.isActive && provider && (
+                                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
+                                                    Not Configured
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-1">{config.description}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {provider && (
+                                            <button
+                                                onClick={() => handleToggle(provider.id, provider.isActive)}
+                                                disabled={saving === provider.id}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${provider.isActive ? 'bg-blue-600' : 'bg-gray-200'
+                                                    } ${saving === provider.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${provider.isActive ? 'translate-x-6' : 'translate-x-1'
+                                                        }`}
+                                                />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* API Key Input (only if needed) */}
+                                {config.needsApiKey && provider && (
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="password"
+                                                placeholder={provider.apiKey ? `sk-...${provider.apiKey.slice(-5)}` : 'Enter API Key'}
+                                                value={apiKeyInput}
+                                                onChange={(e) => setApiKeyInput(e.target.value)}
+                                                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <button
+                                                onClick={() => handleSaveApiKey(provider.id, apiKeyInput)}
+                                                disabled={saving === provider.id || !apiKeyInput}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                        {provider.apiKey && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Key configured: {provider.apiKey.substring(0, 10)}...{provider.apiKey.slice(-4)}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Cloudflare AI - No API Key Needed */}
+                                {!config.needsApiKey && provider && (
+                                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p className="text-sm text-blue-800">
+                                            ✨ <strong>Free tier</strong> - No API key required. Uses Cloudflare Workers AI binding.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Provider Type</label>
-                                <select
-                                    className="mt-1 w-full border rounded-md p-2"
-                                    value={newProvider.provider}
-                                    onChange={e => setNewProvider({ ...newProvider, provider: e.target.value })}
-                                >
-                                    <option value="openai">OpenAI</option>
-                                    <option value="gemini">Google Gemini</option>
-                                    <option value="anthropic">Anthropic Claude</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">System API Key (Optional)</label>
-                                <input
-                                    type="password"
-                                    className="mt-1 w-full border rounded-md p-2"
-                                    placeholder="sk-..."
-                                    value={newProvider.apiKey}
-                                    onChange={e => setNewProvider({ ...newProvider, apiKey: e.target.value })}
-                                />
-                                <p className="text-xs text-gray-500 mt-1">If set, tenants can use this key as fallback.</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Default Model ID</label>
-                                <input
-                                    type="text"
-                                    className="mt-1 w-full border rounded-md p-2"
-                                    placeholder="e.g., gpt-4o"
-                                    value={newProvider.modelId}
-                                    onChange={e => setNewProvider({ ...newProvider, modelId: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                >
-                                    Add Provider
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

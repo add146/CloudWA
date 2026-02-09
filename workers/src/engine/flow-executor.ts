@@ -449,17 +449,10 @@ export class FlowExecutor {
         context: Array<{ role: 'user' | 'assistant'; content: string }>,
         nodeData: Record<string, any>
     ): Promise<string> {
-        // 1. Get Tenant ID from session (need to pass it or fetch it)
-        // Since we don't have tenantId in session, we might need to lookup device -> tenant
-        // Optimization: Pass tenantId to FlowExecutor constructor
-        // For now, let's assume we can query it or it's in the environment context if we had it.
-        // Actually, we can fetch device to get tenantId.
-
         try {
             const { drizzle } = await import('drizzle-orm/d1');
             const { eq, and, or } = await import('drizzle-orm');
             const { devices: devicesTable, tenantAiSettings, aiProviders } = await import('@/db/schema');
-            const { OpenAIProvider } = await import('@/ai/providers/openai');
 
             const db = drizzle(this.env.DB);
 
@@ -477,11 +470,13 @@ export class FlowExecutor {
             }
 
             const tenantId = device.tenantId;
-            const requestedProvider = nodeData.provider || 'openai'; // default to openai
+            const requestedProvider = nodeData.provider || 'workers_ai'; // Default to workers_ai
             const requestedModel = nodeData.model;
 
-            // Get Tenant Settings for this provider
-            const query = await db
+            console.log(`[FlowExecutor] AI Request: Provider=${requestedProvider}, Model=${requestedModel || 'default'}`);
+
+            // Try to get Tenant-specific settings first
+            const tenantQuery = await db
                 .select({
                     setting: tenantAiSettings,
                     provider: aiProviders
@@ -494,93 +489,86 @@ export class FlowExecutor {
                 ))
                 .limit(1);
 
-            let config = query[0];
             let apiKey = '';
             let modelId = requestedModel;
+            let finalProvider = requestedProvider;
 
-            if (config) {
-                // Tenant has specific settings exists
+            if (tenantQuery.length > 0) {
+                // Tenant has specific settings
+                const config = tenantQuery[0];
                 const settingConfig = config.setting.config ? JSON.parse(config.setting.config) : {};
-                apiKey = config.setting.apiKey || config.provider.apiKey;
-                // Use requested model -> tenant config model -> provider default model
+                apiKey = config.setting.apiKey || config.provider.apiKey || '';
                 modelId = modelId || settingConfig.model || config.provider.modelId;
+                console.log(`[FlowExecutor] Using Tenant AI Settings: Provider=${finalProvider}, HasKey=${!!apiKey}`);
             } else {
-                // No tenant setting found, check if System Provider exists and is active
-                const [systemProvider] = await db
+                // No tenant setting, check System Provider
+                const systemQuery = await db
                     .select()
                     .from(aiProviders)
                     .where(and(
-                        or(
-                            eq(aiProviders.provider, requestedProvider),
-                            // If requested 'workers_ai' but we only have 'hybrid' in DB, or vice versa
-                            (requestedProvider === 'workers_ai' ? eq(aiProviders.provider, 'hybrid') : undefined),
-                            (requestedProvider === 'hybrid' ? eq(aiProviders.provider, 'workers_ai') : undefined)
-                        ),
+                        eq(aiProviders.provider, requestedProvider),
                         eq(aiProviders.isActive, true)
                     ))
                     .limit(1);
 
-                if (!systemProvider) {
-                    console.error(`AI Provider not found/active: ${requestedProvider}`);
-                    return "Error: AI Provider not configured or inactive.";
+                if (systemQuery.length > 0) {
+                    const systemProvider = systemQuery[0];
+                    apiKey = systemProvider.apiKey || '';
+                    modelId = modelId || systemProvider.modelId;
+                    console.log(`[FlowExecutor] Using System AI Provider: Provider=${finalProvider}, HasKey=${!!apiKey}`);
+                } else {
+                    // Fallback: Use Workers AI if available (doesn't need provider in DB)
+                    if (requestedProvider === 'workers_ai' || requestedProvider === 'hybrid') {
+                        console.log(`[FlowExecutor] No provider in DB, using Workers AI binding directly`);
+                        apiKey = ''; // No key needed for Workers AI binding
+                        modelId = modelId || '@cf/meta/llama-3.1-8b-instruct';
+                    } else {
+                        console.error(`AI Provider not found/active: ${requestedProvider}`);
+                        return "Error: AI Provider not configured or inactive.";
+                    }
                 }
-
-                apiKey = systemProvider.apiKey;
-                modelId = modelId || systemProvider.modelId;
-            }
-
-            if (!apiKey) {
-                return "Error: AI API Key not configured (System default is also missing).";
             }
 
             // Instantiate Provider
-            let provider: AIProvider;
+            let provider: any;
 
-            // Log what we found
-            console.log(`[FlowExecutor] AI Provider Selection: Requested=${requestedProvider}, Model=${modelId}, HasKey=${!!apiKey}`);
-
-            switch (requestedProvider) {
+            switch (finalProvider) {
                 case 'openai':
+                    if (!apiKey) {
+                        return "Error: OpenAI API Key not configured.";
+                    }
+                    const { OpenAIProvider } = await import('@/ai/providers/openai');
                     provider = new OpenAIProvider(apiKey, modelId || 'gpt-4o');
                     break;
 
                 case 'gemini':
+                    if (!apiKey) {
+                        return "Error: Gemini API Key not configured.";
+                    }
                     const { GeminiProvider } = await import('@/ai/providers/gemini');
                     provider = new GeminiProvider(apiKey, modelId || 'gemini-1.5-flash');
                     break;
 
                 case 'workers_ai':
-                case 'hybrid': // Alias for workers_ai / hybrid
+                case 'hybrid':
                     const { WorkersAIProvider } = await import('@/ai/providers/workers-ai');
                     // Pass env.AI binding AND apiKey (if present)
                     // If apiKey is present (AccountID:Token), the provider will use REST API
                     // If apiKey is missing (global default), it will use the binding
-                    provider = new WorkersAIProvider(this.env.AI, modelId, apiKey);
+                    provider = new WorkersAIProvider(this.env.AI, modelId || '@cf/meta/llama-3.1-8b-instruct', apiKey);
                     break;
 
                 default:
-                    // Fallback to OpenAI if unknown, or error?
-                    // Let's try to be smart. If apiKey starts with 'sk-', it's probably OpenAI.
-                    if (apiKey.startsWith('sk-')) {
-                        provider = new OpenAIProvider(apiKey, modelId || 'gpt-4o');
-                    } else if (apiKey.startsWith('AIza')) {
-                        const { GeminiProvider } = await import('@/ai/providers/gemini');
-                        provider = new GeminiProvider(apiKey, modelId || 'gemini-1.5-flash');
-                    } else {
-                        return `Error: Provider ${requestedProvider} not configured or supported.`;
-                    }
+                    return `Error: Provider ${finalProvider} not supported.`;
             }
 
+            console.log(`[FlowExecutor] AI Provider Ready: ${finalProvider} (Model: ${modelId})`);
+
             // Generate
-            // Extract prompts from nodeData (new enhanced format)
             const systemPrompt = this.resolveVariables(nodeData.systemPrompt || nodeData.prompt || 'You are a helpful AI assistant.');
             const userPrompt = this.resolveVariables(nodeData.userPrompt || userMessage);
             const temperature = nodeData.temperature !== undefined ? nodeData.temperature : 0.7;
             const maxTokens = nodeData.maxTokens || 1000;
-
-            // TODO: Handle intentions if defined
-            // If nodeData.intentions is populated, we should include them in the system prompt
-            // For intent classification, we can add: "Classify user intent as one of: [intention names]"
 
             return await provider.generateText(userPrompt, {
                 systemPrompt: systemPrompt,
