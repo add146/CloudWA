@@ -4,6 +4,19 @@ import { authMiddleware } from '@/middleware/auth';
 
 const mediaRouter = new Hono<HonoContext>();
 
+// OPTIONS handler for CORS preflight
+mediaRouter.options('/:key', async (c) => {
+    return new Response(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Max-Age': '86400',
+        },
+    });
+});
+
 // Serve media file (Public)
 mediaRouter.get('/:key', async (c) => {
     const key = c.req.param('key');
@@ -21,6 +34,7 @@ mediaRouter.get('/:key', async (c) => {
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Content-Type');
+    headers.set('Cache-Control', 'public, max-age=31536000');
 
     return new Response(object.body, {
         headers,
