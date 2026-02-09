@@ -19,7 +19,7 @@ export default function DeletableEdge({
     style = {},
     markerEnd,
 }: EdgeProps) {
-    const { setEdges } = useFlowStore();
+    const { deleteEdge } = useFlowStore();
     const [edgePath, labelX, labelY] = getBezierPath({
         sourceX,
         sourceY,
@@ -31,7 +31,8 @@ export default function DeletableEdge({
 
     const onEdgeClick = (evt: React.MouseEvent) => {
         evt.stopPropagation();
-        setEdges((edges) => edges.filter((edge) => edge.id !== id));
+        console.log('[DeletableEdge] Deleting edge:', id);
+        deleteEdge(id);
     };
 
     return (

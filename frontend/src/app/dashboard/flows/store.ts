@@ -17,6 +17,7 @@ interface FlowStore {
     setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
     onEdgesChange: (changes: EdgeChange[]) => void;
     onConnect: (connection: Connection) => void;
+    deleteEdge: (edgeId: string) => void;
 
     // Selection
     selectNode: (nodeId: string | null) => void;
@@ -90,6 +91,11 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
             type: 'deletable',
         };
         set({ edges: [...get().edges, newEdge] });
+    },
+
+    deleteEdge: (edgeId) => {
+        console.log('[FlowStore] Deleting edge:', edgeId);
+        set({ edges: get().edges.filter((e) => e.id !== edgeId) });
     },
 
     selectNode: (nodeId) => {
