@@ -17,6 +17,11 @@ mediaRouter.get('/:key', async (c) => {
     object.writeHttpMetadata(headers);
     headers.set('etag', object.httpEtag);
 
+    // Add CORS headers to allow browser to load images
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type');
+
     return new Response(object.body, {
         headers,
     });
