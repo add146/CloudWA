@@ -228,7 +228,7 @@ function AIConfig({ node, onUpdate }: any) {
                         // A provider is active if it has an API key (tenantSetting.hasApiKey) OR is free (no key needed)
                         // AND it is enabled (tenantSetting.isEnabled !== false)
                         const activeProviders = data.data.filter((p: any) => {
-                            const isEnabled = p.tenantSetting?.isEnabled !== false;
+                            const isEnabled = p.tenantSetting?.isEnabled === true;
 
                             // Check for free providers or those with keys
                             const isFree = p.provider === 'workers_ai' || p.displayName.includes('(Free)');
