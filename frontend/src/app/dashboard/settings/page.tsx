@@ -233,7 +233,8 @@ function AISettingsForm() {
 
     const fetchProviders = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/settings/ai`, {
+            // showAll=true ensures Settings page gets all providers for configuration
+            const res = await fetch(`${API_URL}/api/settings/ai?showAll=true`, {
                 headers: getAuthHeaders()
             });
             if (res.ok) {
