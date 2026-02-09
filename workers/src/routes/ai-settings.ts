@@ -48,7 +48,16 @@ aiSettingsRouter.get('/', async (c) => {
                     maskedApiKey: setting.apiKey ? `${setting.apiKey.substring(0, 3)}...${setting.apiKey.slice(-4)}` : null,
                     config: settingConfig,
                     customSystemPrompt: setting.customSystemPrompt,
-                } : null
+                } : {
+                    // Default disabled setting for unconfigured providers
+                    id: 'default-disabled',
+                    isDefault: false,
+                    isEnabled: false,
+                    hasApiKey: false,
+                    maskedApiKey: null,
+                    config: {},
+                    customSystemPrompt: null
+                }
             };
         });
 
