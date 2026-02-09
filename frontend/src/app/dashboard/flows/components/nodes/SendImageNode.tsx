@@ -27,8 +27,9 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
             const result = await res.json();
 
             if (result.success && result.data) {
+                const fullUrl = `${API_URL}/api/media/${result.data.key}`;
                 updateNodeData(id, {
-                    fileUrl: result.data.url,
+                    fileUrl: fullUrl,
                     fileName: result.data.filename,
                     fileType: result.data.contentType
                 });
