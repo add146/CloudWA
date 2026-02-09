@@ -209,6 +209,7 @@ function AIConfig({ node, onUpdate }: any) {
     const [showIntentions, setShowIntentions] = useState(false);
     const [availableProviders, setAvailableProviders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [statusMessage, setStatusMessage] = useState<string>('');
 
     // Fetch available providers from API
     useEffect(() => {
@@ -224,18 +225,24 @@ function AIConfig({ node, onUpdate }: any) {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && Array.isArray(data.data)) {
-                        // Filter only active providers
-                        // A provider is active if it has an API key (tenantSetting.hasApiKey) OR is free (no key needed)
-                        // AND it is enabled (tenantSetting.isEnabled !== false)
+                        // Debug collection
+                        const debugLogs: string[] = [];
+
                         const activeProviders = data.data.filter((p: any) => {
                             const isEnabled = p.tenantSetting?.isEnabled === true;
-                            // Check for free providers or those with keys
                             const isFree = p.provider === 'workers_ai' || p.displayName.includes('(Free)');
                             const hasKey = p.tenantSetting?.hasApiKey;
 
-                            console.log(`[AI Filter] ${p.displayName}: Enabled=${isEnabled}, Free=${isFree}, HasKey=${hasKey} -> Keep=${isEnabled && (isFree || hasKey)}`);
+                            // Debug logic
+                            const shouldKeep = isEnabled && (isFree || hasKey);
+                            debugLogs.push(`${p.displayName}: E=${isEnabled}, K=${hasKey} -> ${shouldKeep ? 'KEEP' : 'SKIP'}`);
 
-                            return isEnabled && (isFree || hasKey);
+                            // Strict check for known paid providers
+                            if (['openai', 'gemini', 'anthropic'].includes(p.provider)) {
+                                return isEnabled && hasKey;
+                            }
+
+                            return shouldKeep;
                         }).map((p: any) => ({
                             id: p.id,
                             name: p.displayName,
@@ -247,12 +254,15 @@ function AIConfig({ node, onUpdate }: any) {
                         }));
 
                         setAvailableProviders(activeProviders);
+                        setStatusMessage(debugLogs.join(' | '));
                     }
                 } else {
                     console.error('Failed to fetch AI providers');
+                    setStatusMessage(`Failed to fetch AI providers: ${response.statusText}`);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error fetching AI providers:', error);
+                setStatusMessage(`Error: ${error.message}`);
             } finally {
                 setLoading(false);
             }
