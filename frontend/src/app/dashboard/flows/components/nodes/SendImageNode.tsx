@@ -7,6 +7,9 @@ export const SendImageNode = memo(({ id, data, selected }: NodeProps) => {
     const { updateNodeData, setNodes } = useReactFlow();
     const [isUploading, setIsUploading] = useState(false);
 
+    // Debug: Log current data state on every render
+    console.log('[SendImageNode] Render - ID:', id, 'fileUrl:', data.fileUrl, 'fileName:', data.fileName);
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
